@@ -1,7 +1,7 @@
-<<<<<<< HEAD
+
 # unify-conference_frontend
 비대면 UI 커스텀 모듈 화상회의 플랫폼, unicon 프로젝트를 스프링부트+ 리액트
-=======
+
 # React + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -14,4 +14,4 @@ Currently, two official plugins are available:
 ## Expanding the ESLint configuration
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
->>>>>>> 2bd8fd1 (initial commit)
+

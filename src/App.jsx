@@ -6,7 +6,7 @@ import { UniconMain as Main } from "./pages/Home/unicon_main";
 import UserManagementDashboard from "./pages/UserManagement/UserManagement";
 import ModuleMarketplace from "./pages/ModuleMarketplace/ModuleMarketplace";
 import AttendanceModule from "./pages/AttendanceModule/AttendanceModule";
-
+import SignUpPage from "./pages/SignUp/SignUpPage"
 import "./App.css";
 
 // 임시 컴포넌트들
@@ -49,6 +49,7 @@ function App() {
           <Route path="login-custom" element={<LoginPage />} />
           <Route path="meeting" element={<MeetingPage />} />
           <Route path="module-management" element={<ModuleManagement />} />
+          <Route path="/signup" element={<SignUpPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

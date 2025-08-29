@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios'; // axios import 추가
 
 const KakaoSignUpForm = ({ onSubmit }) => {
     const [formData, setFormData] = useState({
@@ -36,10 +37,21 @@ const KakaoSignUpForm = ({ onSubmit }) => {
         }));
     };
     
-    // 카카오 인증 페이지로 이동하는 함수
-    const handleKakaoAuth = () => {
-        // 실제 백엔드 API는 카카오 로그인 URL을 반환해야 합니다.
-        window.location.href = 'http://localhost:9093/api/guest/kakao-login'; 
+    // 🔽 카카오 인증 페이지로 이동하는 함수 (수정됨)
+    const handleKakaoAuth = async () => {
+        try {
+            // 1. 백엔드에 카카오 로그인 URL을 요청합니다. (signup 타입 명시)
+            const response = await axios.get('http://localhost:9093/api/guest/kakao/auth-url?type=signup');
+            const { url } = response.data;
+            
+            // 2. 백엔드에서 받은 실제 카카오 인증 URL로 페이지를 이동시킵니다.
+            if (url) {
+                window.location.href = url;
+            }
+        } catch (error) {
+            console.error('Failed to get Kakao auth URL', error);
+            alert('카카오 인증을 시작하는 데 실패했습니다. 잠시 후 다시 시도해주세요.');
+        }
     };
 
     // 폼 제출 핸들러
@@ -53,6 +65,7 @@ const KakaoSignUpForm = ({ onSubmit }) => {
     };
 
     return (
+        // ... (JSX 부분은 이전과 동일)
         <form onSubmit={handleSubmit}>
             <div className="form-group">
                 <div className="help-text">카카오 인증 후 이름과 이메일이 자동으로 입력됩니다. <br/>회사명과 서브도메인을 입력해주세요.</div>
@@ -70,13 +83,11 @@ const KakaoSignUpForm = ({ onSubmit }) => {
             
             <div className="form-group">
                 <label htmlFor="kakao_name_input">이름 <span className="required">*</span></label>
-                {/* 🔽 readOnly 속성을 항상 true로 변경 */}
                 <input id="kakao_name_input" name="userName" type="text" value={formData.userName} readOnly placeholder="카카오 인증 후 자동 입력됩니다" required />
             </div>
 
             <div className="form-group">
                 <label htmlFor="kakao_email_input">이메일 <span className="required">*</span></label>
-                {/* 🔽 readOnly 속성을 항상 true로 변경 */}
                 <input id="kakao_email_input" name="email" type="email" value={formData.email} readOnly placeholder="카카오 인증 후 자동 입력됩니다" required />
             </div>
 

@@ -1,53 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import apiClient from '../../services/api/api'; // 수정된 import 경로
 import NormalSignUpForm from './NormalSignUpForm.jsx';
 import KakaoSignUpForm from './KakaoSignUpForm.jsx';
 import './SignUpStyles.css';
 
 const SignUpPage = () => {
-    const [signupType, setSignupType] = useState('normal'); // 'normal' or 'kakao'
+    const [signupType, setSignupType] = useState('normal');
 
-    // 카카오 인증 후 리디렉션 처리
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode');
-        // 카카오 인증 후 리디렉션된 경우, signupType을 'kakao'로 설정
         if (mode === 'kakao') {
             setSignupType('kakao');
         }
     }, []);
 
-    // 회원가입 타입 변경 핸들러
     const handleTypeChange = (e) => {
         setSignupType(e.target.value);
     };
 
-    // 일반 회원가입 폼 제출 핸들러 (NormalSignUpForm에서 호출)
     const handleNormalSubmit = async (formData) => {
         try {
             const finalFormData = { ...formData, signupType: 'normal' };
-            const response = await axios.post('http://localhost:9093/api/guest/signup', finalFormData);
-            
+            const response = await apiClient.post('/api/guest/signup', finalFormData);
             if (response.status === 200) {
                 alert('일반 회원가입이 성공적으로 완료되었습니다!');
-                // 성공 후 로그인 페이지로 이동 등의 로직 추가
                 // window.location.href = '/login';
             }
         } catch (error) {
-            // 백엔드에서 보낸 에러 메시지가 있다면 표시, 없다면 기본 메시지 표시
             const errorMessage = error.response?.data?.message || '일반 회원가입 중 오류가 발생했습니다.';
             alert(errorMessage);
             console.error('Normal Signup error:', error);
         }
     };
 
-    // 카카오 회원가입 폼 제출 핸들러 (KakaoSignUpForm에서 호출)
     const handleKakaoSubmit = async (formData) => {
         try {
             const finalFormData = { ...formData, signupType: 'kakao' };
-            // 🔽 API 주소를 전체 경로로 수정
-            const response = await axios.post('http://localhost:9093/api/guest/signup', finalFormData);
-
+            const response = await apiClient.post('/api/guest/signup', finalFormData);
             if (response.status === 200) {
                 alert('카카오 회원가입이 성공적으로 완료되었습니다!');
                 // window.location.href = '/login';

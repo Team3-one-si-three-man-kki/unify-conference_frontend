@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios'; // axios import 추가
+import apiClient from '../../services/api/api'; // 🔽 axios 대신 apiClient를 import
 
 const KakaoSignUpForm = ({ onSubmit }) => {
     const [formData, setFormData] = useState({
@@ -10,7 +10,6 @@ const KakaoSignUpForm = ({ onSubmit }) => {
     });
     const [isKakaoAuthenticated, setIsKakaoAuthenticated] = useState(false);
 
-    // 카카오 인증 후 리디렉션 처리
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         const mode = params.get('mode');
@@ -28,7 +27,6 @@ const KakaoSignUpForm = ({ onSubmit }) => {
         }
     }, []);
 
-    // 입력 필드 변경 핸들러
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({
@@ -37,14 +35,11 @@ const KakaoSignUpForm = ({ onSubmit }) => {
         }));
     };
     
-    // 🔽 카카오 인증 페이지로 이동하는 함수 (수정됨)
     const handleKakaoAuth = async () => {
         try {
-            // 1. 백엔드에 카카오 로그인 URL을 요청합니다. (signup 타입 명시)
-            const response = await axios.get('http://localhost:9093/api/guest/kakao/auth-url?type=signup');
+            // 🔽 axios.get 대신 apiClient.get을 사용합니다.
+            const response = await apiClient.get('http://localhost:9093/api/guest/kakao/auth-url?type=signup');
             const { url } = response.data;
-            
-            // 2. 백엔드에서 받은 실제 카카오 인증 URL로 페이지를 이동시킵니다.
             if (url) {
                 window.location.href = url;
             }
@@ -54,7 +49,6 @@ const KakaoSignUpForm = ({ onSubmit }) => {
         }
     };
 
-    // 폼 제출 핸들러
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!isKakaoAuthenticated) {
@@ -65,12 +59,10 @@ const KakaoSignUpForm = ({ onSubmit }) => {
     };
 
     return (
-        // ... (JSX 부분은 이전과 동일)
         <form onSubmit={handleSubmit}>
             <div className="form-group">
                 <div className="help-text">카카오 인증 후 이름과 이메일이 자동으로 입력됩니다. <br/>회사명과 서브도메인을 입력해주세요.</div>
             </div>
-
             {!isKakaoAuthenticated ? (
                 <div className="form-group">
                     <button type="button" className="btn-kakao" onClick={handleKakaoAuth}>카카오 인증하기</button>
@@ -80,22 +72,18 @@ const KakaoSignUpForm = ({ onSubmit }) => {
                     ✅ 인증 완료: 이름·이메일이 자동 입력되었습니다.
                 </div>
             )}
-            
             <div className="form-group">
                 <label htmlFor="kakao_name_input">이름 <span className="required">*</span></label>
                 <input id="kakao_name_input" name="userName" type="text" value={formData.userName} readOnly placeholder="카카오 인증 후 자동 입력됩니다" required />
             </div>
-
             <div className="form-group">
                 <label htmlFor="kakao_email_input">이메일 <span className="required">*</span></label>
                 <input id="kakao_email_input" name="email" type="email" value={formData.email} readOnly placeholder="카카오 인증 후 자동 입력됩니다" required />
             </div>
-
             <div className="form-group">
                 <label htmlFor="kakao_company_input">회사명 <span className="required">*</span></label>
                 <input id="kakao_company_input" name="tenantName" type="text" value={formData.tenantName} onChange={handleChange} placeholder="회사명을 입력해주세요" required />
             </div>
-
             <div className="form-group">
                 <label htmlFor="kakao_tenant_input">서브도메인 <span className="required">*</span></label>
                  <div className="subdomain-group">

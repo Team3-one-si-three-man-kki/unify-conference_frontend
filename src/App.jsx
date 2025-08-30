@@ -3,7 +3,6 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import WaitingRoom from './pages/SessionRoom/WaitingRoom';
 import { SessionRoom } from './pages/SessionRoom/SessionRoom';
 import './App.css';
-import { BrowserRouter, Routes, Route } from "react-router-dom";
 import TenantDashboard from "./components/layout/TenantDashboard/TenantDashboard";
 import { UniconMain as Main } from "./pages/Home/unicon_main";
 

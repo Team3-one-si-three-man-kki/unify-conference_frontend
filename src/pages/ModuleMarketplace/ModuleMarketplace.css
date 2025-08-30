@@ -1,0 +1,280 @@
+/* ModuleMarketplace.css */
+
+.module-marketplace {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.page-header {
+  background: white;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.page-header h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 10px;
+}
+
+.breadcrumb {
+  display: flex;
+  gap: 10px;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.marketplace-container {
+  display: flex;
+  gap: 24px;
+}
+
+.module-list-section {
+  flex: 1;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.module-list-section h2 {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.module-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.module-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.module-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.module-info {
+  flex: 1;
+}
+
+.module-info h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.module-info p {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.module-price {
+  font-size: 16px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.module-actions {
+  text-align: right;
+}
+
+.rating {
+  font-size: 14px;
+  color: #f59e0b;
+  margin-bottom: 8px;
+}
+
+.subscribe-btn {
+  padding: 8px 20px;
+  background: #3674B5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.subscribe-btn:hover {
+  background: #2c5d94;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(54, 116, 181, 0.3);
+}
+
+.subscribe-btn.subscribed {
+  background: #6c757d;
+}
+
+.subscribe-btn.subscribed:hover {
+  background: #5a6268;
+}
+
+.sidebar-section {
+  width: 350px;
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-section h2 {
+  font-size: 18px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.filter-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.filter-tabs button {
+  padding: 6px 16px;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6b7280;
+  transition: all 0.3s ease;
+}
+
+.filter-tabs button:hover {
+  background: #f3f4f6;
+  color: #333;
+}
+
+.filter-tabs button.active {
+  background: #eef2ff;
+  color: #3674B5;
+  border-color: #3674B5;
+  font-weight: 600;
+}
+
+.popular-modules h3 {
+  font-size: 16px;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.grid-module-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.grid-module-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.module-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.module-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.grid-module-card .rating {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.grid-module-card .price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 12px;
+}
+
+.grid-module-card .subscribe-btn {
+  width: 100%;
+  padding: 6px 14px;
+  font-size: 12px;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  font-size: 18px;
+  color: #666;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1024px) {
+  .marketplace-container {
+    flex-direction: column;
+  }
+  
+  .sidebar-section {
+    width: 100%;
+  }
+  
+  .module-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .module-card {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .module-actions {
+    text-align: center;
+    width: 100%;
+  }
+  
+  .subscribe-btn {
+    width: 100%;
+  }
+}

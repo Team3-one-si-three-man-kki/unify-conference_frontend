@@ -13,7 +13,9 @@ html, body {
 
 #root {
   width: 100%;
-  min-height: 100vh;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
 }
 
 /* Reset default styles that might cause issues */

@@ -1,0 +1,128 @@
+.login-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    background-color: #f0f2f5;
+    font-family: 'Pretendard', sans-serif;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 400px;
+    padding: 40px;
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.login-title {
+    font-size: 28px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #1a202c;
+}
+
+.login-subtitle {
+    font-size: 16px;
+    color: #718096;
+    margin-bottom: 32px;
+}
+
+.login-form .form-group {
+    margin-bottom: 24px;
+    text-align: left;
+}
+
+.login-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #4a5568;
+}
+
+.login-form input {
+    width: 100%;
+    height: 50px;
+    padding: 0 16px;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+.login-form input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.btn-login {
+    width: 100%;
+    height: 50px;
+    border: none;
+    border-radius: 8px;
+    background-color: #3b82f6;
+    color: white;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-login:hover {
+    background-color: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 32px 0;
+    color: #a0aec0;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.divider:not(:empty)::before {
+    margin-right: .5em;
+}
+
+.divider:not(:empty)::after {
+    margin-left: .5em;
+}
+
+.btn-kakao {
+    width: 100%;
+    height: 50px; /* ◀️ 일반 로그인 버튼과 높이를 50px로 맞춥니다. */
+    padding: 0;
+    border: 1px solid #FEE500; /* ◀️ 카카오의 노란색 테두리를 추가해 더 자연스럽게 만듭니다. */
+    background-color: #FEE500; /* ◀️ 이미지 로딩 전 배경색을 지정합니다. */
+    border-radius: 8px; /* ◀️ 다른 버튼과 통일감을 위해 8px로 조정합니다. */
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-kakao:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* ◀️ 호버 효과를 추가합니다. */
+}
+
+.btn-kakao img {
+    width: 100%;
+    height: 100%;
+    /* ◀️ object-fit: contain; 
+      이미지의 비율을 유지하면서, 버튼(50px 높이) 안에 전체가 보이도록 합니다.
+      이것이 이미지가 잘리지 않게 하는 핵심 속성입니다.
+    */
+    object-fit: contain; 
+}

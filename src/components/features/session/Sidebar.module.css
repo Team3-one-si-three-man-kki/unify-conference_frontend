@@ -1,0 +1,13 @@
+/* src/components/features/session/Sidebar.module.css */
+
+.sidebarContainer {
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    flex-shrink: 0; /* Prevent sidebar from shrinking */
+}

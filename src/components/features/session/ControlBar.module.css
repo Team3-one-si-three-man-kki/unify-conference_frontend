@@ -1,0 +1,104 @@
+/* src/components/features/session/ControlBar.module.css */
+
+/* ControlBar 자체의 스타일 (필요시 추가) */
+.controlBarContainer {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    padding: 4px;
+    height: 80px;
+    min-height: 80px;
+    max-height: 100px;
+    overflow-x: auto;
+    align-items: stretch;
+    justify-content: center;
+}
+
+/* 개별 컨트롤 버튼 스타일 */
+.controlButton {
+    min-width: 80px;
+    max-width: 120px;
+    flex: 1 1 auto;
+    height: 78%;
+    background: linear-gradient(135deg, #293465 0, #40334d 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.controlButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.controlButton.active {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: 1px solid #007bff;
+}
+
+.buttonIcon {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+}
+
+.buttonName {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+}
+
+/* 특정 버튼 (예: 나가기 버튼) */
+.leaveButton {
+    width: 120px;
+    height: 60px;
+    background: linear-gradient(135deg, #ff4757 0%, #c44569 100%);
+    border: 2px solid #ff6b7a;
+    border-radius: 30px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow:
+        0 4px 20px rgba(255, 71, 87, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+}
+
+.leaveButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 71, 87, 0.4);
+}
+
+/* 스크롤바 스타일 (ControlBar 자체에 적용) */
+.controlBarContainer::-webkit-scrollbar {
+    height: 6px;
+}
+
+.controlBarContainer::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.controlBarContainer::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.controlBarContainer::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}

@@ -1,0 +1,311 @@
+/* SignUpStyles.css */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css'); /* Pretendard 폰트 추가 */
+
+body {
+    font-family: 'Pretendard', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px;
+    color: #2d3748;
+    line-height: 1.6;
+    background: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%); /* 그라데이션 배경 */
+    display: flex; /* 중앙 정렬을 위해 추가 */
+    justify-content: center; /* 중앙 정렬을 위해 추가 */
+    align-items: center; /* 중앙 정렬을 위해 추가 */
+    margin: 0; /* body 기본 마진 제거 */
+}
+
+.container { 
+    max-width: 540px; 
+    width: 100%; /* 너비를 100%로 설정하여 반응형 대응 */
+    margin: 0 auto; 
+    background: rgba(255, 255, 255, 0.98); /* 거의 불투명한 배경 */
+    border-radius: 24px; 
+    padding: 48px; 
+    box-shadow: 0 15px 60px rgba(54, 116, 181, 0.15); /* 그림자 강조 */
+    border: 1px solid rgba(255,255,255,0.6); /* 밝은 경계선 */
+    backdrop-filter: blur(5px); /* 배경 블러 효과 */
+}
+
+h1 { 
+    font-size: 36px; /* 폰트 크기 증가 */
+    font-weight: 800; 
+    color: #1a202c; 
+    margin-bottom: 12px; /* 마진 증가 */
+    text-align: center;
+}
+
+.subtitle { 
+    color: #718096; 
+    font-size: 17px; /* 폰트 크기 증가 */
+    margin-bottom: 40px; 
+    text-align: center;
+}
+
+.form-group { 
+    margin-bottom: 28px; 
+}
+
+.form-group label { 
+    display: block; 
+    font-size: 15px; 
+    font-weight: 600; 
+    margin-bottom: 10px; 
+    color: #2d3748;
+}
+
+.required { 
+    color: #ef4444; /* 더 선명한 빨강 */
+    font-weight: 700;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"] { 
+    width: 100%; 
+    height: 52px; 
+    padding: 14px 18px; 
+    border: 1px solid #cbd5e0; /* 얇은 테두리 */
+    border-radius: 12px; 
+    font-size: 15px; 
+    transition: all 0.2s ease; 
+    box-sizing: border-box;
+    background-color: #f7fafc; /* 연한 배경색 */
+}
+
+input:focus { 
+    outline: none; 
+    border-color: #3b82f6; /* 포커스 시 파란색 테두리 */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); /* 포커스 시 그림자 */
+    background-color: #ffffff; /* 포커스 시 하얀 배경 */
+}
+
+input:read-only {
+    background-color: #edf2f7; /* readOnly 배경색 변경 */
+    color: #718096;
+    cursor: not-allowed;
+}
+
+.input-group { 
+    display: flex; 
+    gap: 12px; 
+}
+
+.input-group input { 
+    flex: 1; 
+}
+
+.btn-check {
+    height: 52px;
+    background: #4299e1; /* 일관된 파란색 계열 */
+    color: white;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-width: 110px;
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+.btn-check:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(66, 153, 225, 0.4);
+}
+
+.submit-button { /* trigger1 대신 범용적인 이름으로 변경 */
+    width: 100%;
+    height: 60px;
+    background: #3b82f6; /* 메인 파란색 */
+    color: white;
+    border: none;
+    padding: 18px 32px;
+    border-radius: 16px;
+    font-size: 18px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 36px;
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4); /* 더 깊은 그림자 */
+}
+
+.submit-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 15px 40px rgba(59, 130, 246, 0.5);
+}
+
+.type-selector .radio-group { /* 라디오 그룹 UI 개선 */
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2열 그리드 */
+    gap: 15px; /* 간격 조절 */
+    margin-top: 10px;
+}
+
+.type-selector .radio-option {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px 20px;
+    border: 2px solid #cbd5e0;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #4a5568;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.type-selector .radio-option.active {
+    border-color: #3b82f6; /* 활성화 시 파란색 테두리 */
+    color: #3b82f6;
+    background-color: #eff6ff; /* 활성화 시 연한 파란색 배경 */
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+}
+
+.type-selector .radio-option input[type="radio"] {
+    display: none; /* 실제 라디오 버튼 숨김 */
+}
+
+
+.help-text { 
+    font-size: 13px; 
+    color: #718096; 
+    margin-top: 8px; 
+}
+
+.terms-section { 
+    background: #e2f2ff; /* 더 밝고 부드러운 배경색 */
+    border: 1px solid #a8d7ff; /* 더 부드러운 경계선 */
+    border-radius: 16px; 
+    padding: 28px; 
+    margin: 32px 0; 
+}
+
+.terms-title { 
+    font-size: 16px; 
+    font-weight: 700; 
+    margin-bottom: 18px; 
+    color: #2b6cb0; /* 진한 파란색 제목 */
+}
+
+.terms-list { 
+    list-style: none; 
+    padding: 0; 
+}
+
+.terms-list li { 
+    margin-bottom: 12px; 
+    font-size: 14px; 
+    color: #4a5568; 
+    padding-left: 20px;
+    position: relative;
+}
+
+.terms-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: #3b82f6; /* 파란색 불릿 */
+}
+
+.terms-checkbox { 
+    display: flex; 
+    align-items: center; 
+    gap: 12px; 
+    margin-top: 20px; 
+    padding: 18px;
+    background: #ffffff; /* 하얀 배경 */
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+#chk_agree_html { 
+    width: 20px; 
+    height: 20px; 
+    accent-color: #3b82f6; /* 체크박스 색상 */
+    cursor: pointer;
+}
+
+.terms-checkbox label {
+    margin: 0;
+    font-weight: 500;
+}
+
+.btn-kakao {
+    width: 100%;
+    height: 52px;
+    background: #FEE500;
+    color: #1a1a1a;
+    border: 1px solid #F9CC00;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(254, 229, 0, 0.4);
+}
+
+.btn-kakao:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 235, 59, 0.6);
+}
+
+.kakao-user-info {
+    background: #dbeafe; /* 더 부드러운 파란색 배경 */
+    border: 1px solid #60a5fa; /* 더 부드러운 경계선 */
+    border-radius: 12px;
+    padding: 18px;
+    color: #1e40af; /* 진한 파란색 텍스트 */
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.subdomain-group {
+    display: flex;
+    align-items: center;
+    border: 1px solid #cbd5e0;
+    border-radius: 12px;
+    padding: 0 18px;
+    background-color: #f7fafc;
+}
+.subdomain-group:focus-within {
+     border-color: #3b82f6; 
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    background-color: #ffffff;
+}
+
+.subdomain-group input {
+    border: none !important;
+    height: 48px !important;
+    padding: 0 10px !important;
+    box-shadow: none !important;
+    background-color: transparent !important; /* 부모 배경 따르도록 */
+}
+.subdomain-group input:focus {
+    box-shadow: none !important;
+    border-color: transparent !important;
+}
+
+.subdomain-group span {
+    color: #718096;
+    font-weight: 500;
+    white-space: nowrap; /* 줄바꿈 방지 */
+}
+
+/* 메시지 스타일 */
+.error-message {
+    color: #ef4444;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+.success-message {
+    color: #22c55e;
+    font-size: 13px;
+    margin-top: 8px;
+}

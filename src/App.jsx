@@ -6,19 +6,13 @@ import { UniconMain as Main } from "./pages/Home/unicon_main";
 import UserManagementDashboard from "./pages/UserManagement/UserManagement";
 import ModuleMarketplace from "./pages/ModuleMarketplace/ModuleMarketplace";
 import AttendanceModule from "./pages/AttendanceModule/AttendanceModule";
-import SignUpPage from "./pages/SignUp/SignUpPage";
-import LoginPage from "./pages/Login/LoginPage";
+import SignUpPage from "./pages/SignUp/SignUpPage"
+import LoginPage from "./pages/Login/LoginPage"
+import { SessionCreator } from "./pages/session/SessionCreator";
+import { SessionManager } from "./components/features/session/SessionManager";
 import ModuleManagement from "./pages/ModuleManagement/ModuleManagement";
 import "./App.css";
 
-// 임시 컴포넌트들
-
-const MeetingPage = () => (
-  <div style={{ padding: '20px' }}>
-    <h1>미팅 생성</h1>
-    <p>미팅 생성 페이지입니다. (개발 예정)</p>
-  </div>
-);
 
 function App() {
   return (
@@ -37,7 +31,8 @@ function App() {
           <Route path="attendance" element={<AttendanceModule />} />
           <Route path="login-custom" element={<LoginPage />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="meeting" element={<MeetingPage />} />
+          <Route path="meeting" element={<SessionCreator />} />
+          <Route path="previous-meeting" element={<SessionManager />} />
           <Route path="module-management" element={<ModuleManagement />} />
           <Route path="/signup" element={<SignUpPage />} />
         </Route>

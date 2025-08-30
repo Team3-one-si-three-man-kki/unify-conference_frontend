@@ -50,10 +50,25 @@ const UserManagement = () => {
   // URL에서 tenant 파라미터 가져오기
   const getTenantId = () => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('tenant') || 'default-tenant';
+    return params.get('tenant') || '1'; // 기본값을 1로 설정
   };
 
-  // 사용자 검색
+  // JWT 토큰 가져오기 (Authorization 헤더용)
+  const getAuthToken = () => {
+    // localStorage나 sessionStorage에서 토큰 가져오기
+    return localStorage.getItem('accessToken') || '';
+  };
+
+  // API 요청 공통 헤더 설정
+  const getApiHeaders = () => {
+    const token = getAuthToken();
+    return {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    };
+  };
+
+  // 사용자 검색 - REST API 형식으로 변경
   const handleSearch = async () => {
     const tenantId = getTenantId();
     if (!tenantId) {
@@ -63,35 +78,40 @@ const UserManagement = () => {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/InsWebApp/TNU0002selectUserList.pwkjson', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          vo: {
-            tenantId: tenantId,
-            searchKeyword: searchKeyword
-          }
-        })
+      // GET 요청으로 변경하고 쿼리 파라미터 사용
+      const queryParams = new URLSearchParams({
+        tenantId: tenantId,
+        ...(searchKeyword && { searchKeyword })
+      });
+
+      const response = await fetch(`/api/user/list?${queryParams}`, {
+        method: 'GET',
+        headers: getApiHeaders()
       });
 
       if (response.ok) {
         const data = await response.json();
-        const userArray = data.userListVo?.userVoList || [];
         
-        // 비밀번호 마스킹 처리
-        const processedUsers = userArray.map(user => ({
-          ...user,
-          originalPassword: user.password,
-          password: '******',
-          passwordChanged: 'N',
-          selected: false
-        }));
-        
-        setUsers(processedUsers);
+        if (data.success) {
+          const userArray = data.data || [];
+          
+          // 비밀번호 마스킹 처리
+          const processedUsers = userArray.map((user, index) => ({
+            ...user,
+            originalPassword: user.password,
+            password: '******',
+            passwordChanged: 'N',
+            selected: false,
+            displayIndex: index + 1
+          }));
+          
+          setUsers(processedUsers);
+        } else {
+          showPopup(data.message || '사용자 목록을 불러오는데 실패했습니다.');
+        }
       } else {
-        showPopup('사용자 목록을 불러오는데 실패했습니다.');
+        const errorData = await response.json();
+        showPopup(errorData.message || '사용자 목록을 불러오는데 실패했습니다.');
       }
     } catch (error) {
       console.error('검색 오류:', error);
@@ -111,16 +131,18 @@ const UserManagement = () => {
 
     const newUser = {
       id: Date.now(), // 임시 ID
-      tenantId: tenantId,
-      userId: '',
+      tenantId: parseInt(tenantId),
+      userId: null,
       name: '',
       email: '',
-      password: '0000',
-      originalPassword: '0000',
+      password: '',
+      originalPassword: '',
       passwordChanged: 'Y',
       role: 'user',
       selected: false,
-      isNew: true
+      isNew: true,
+      modified: true,
+      rowStatus: 'C'
     };
 
     setUsers(prev => [...prev, newUser]);
@@ -128,11 +150,16 @@ const UserManagement = () => {
 
   // 사용자 삭제
   const handleDeleteUser = (index) => {
-    if (index < 0) {
+    if (index < 0 || index >= users.length) {
       showPopup('삭제할 행을 먼저 선택해주세요.');
       return;
     }
-    setUsers(prev => prev.filter((_, i) => i !== index));
+
+    showPopup('선택한 사용자를 삭제하시겠습니까?', true, (result) => {
+      if (result) {
+        setUsers(prev => prev.filter((_, i) => i !== index));
+      }
+    });
   };
 
   // 선택된 사용자들 삭제
@@ -146,8 +173,12 @@ const UserManagement = () => {
       return;
     }
 
-    setUsers(prev => prev.filter(user => !user.selected));
-    setSelectedUsers([]);
+    showPopup(`선택한 ${selectedIndices.length}개의 사용자를 삭제하시겠습니까?`, true, (result) => {
+      if (result) {
+        setUsers(prev => prev.filter(user => !user.selected));
+        setSelectedUsers([]);
+      }
+    });
   };
 
   // 전체 초기화
@@ -155,6 +186,7 @@ const UserManagement = () => {
     showPopup('모든 데이터를 초기화하시겠습니까?', true, (result) => {
       if (result) {
         setUsers([]);
+        setSearchKeyword('');
       }
     });
   };
@@ -163,7 +195,11 @@ const UserManagement = () => {
   const handleUpdateUser = (index, field, value) => {
     setUsers(prev => prev.map((user, i) => {
       if (i === index) {
-        const updatedUser = { ...user, [field]: value };
+        const updatedUser = { 
+          ...user, 
+          [field]: value,
+          modified: true // 수정 플래그
+        };
         
         // 비밀번호 변경 처리
         if (field === 'password' && value !== '******') {
@@ -187,6 +223,29 @@ const UserManagement = () => {
   // 전체 선택/해제
   const handleSelectAll = (checked) => {
     setUsers(prev => prev.map(user => ({ ...user, selected: checked })));
+  };
+
+  // 이메일 중복 검사
+  const checkEmailDuplicate = async (email, tenantId) => {
+    try {
+      const response = await fetch('/api/user/check-email-by-tenant', {
+        method: 'POST',
+        headers: getApiHeaders(),
+        body: JSON.stringify({
+          email: email,
+          tenantId: tenantId
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.success && data.available;
+      }
+      return false;
+    } catch (error) {
+      console.error('이메일 중복 검사 오류:', error);
+      return false;
+    }
   };
 
   // 저장
@@ -215,6 +274,11 @@ const UserManagement = () => {
         showPopup(`[${rowNum}행] 역할을 선택해주세요.`);
         return;
       }
+      // 새 사용자의 경우 비밀번호 필수
+      if (user.isNew && (!user.password?.trim() || user.password === '******')) {
+        showPopup(`[${rowNum}행] 비밀번호를 입력해주세요.`);
+        return;
+      }
     }
 
     showPopup('변경 내용을 저장하시겠습니까?', true, async (result) => {
@@ -224,34 +288,48 @@ const UserManagement = () => {
     });
   };
 
-  // 사용자 저장 API 호출
+  // 사용자 저장 API 호출 - REST API 형식으로 변경
   const saveUsers = async (modifiedUsers) => {
     try {
+      setIsLoading(true);
+      
       const processedData = modifiedUsers.map(user => ({
-        ...user,
+        userId: user.userId,
+        tenantId: user.tenantId,
+        name: user.name,
+        email: user.email,
+        password: user.passwordChanged === 'Y' && user.password !== '******' ? user.password : 'KEEP_EXISTING_PASSWORD',
+        role: user.role,
+        isActive: user.isActive !== undefined ? user.isActive : true,
         rowStatus: user.isNew ? 'C' : 'U'
       }));
 
-      const response = await fetch('/InsWebApp/saveUserList.pwkjson', {
+      const response = await fetch('/api/user/save', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: getApiHeaders(),
         body: JSON.stringify({
           saveDataList: processedData
         })
       });
 
       if (response.ok) {
-        showPopup('저장이 완료되었습니다.', false, () => {
-          handleSearch();
-        });
+        const data = await response.json();
+        if (data.success) {
+          showPopup('저장이 완료되었습니다.', false, () => {
+            handleSearch(); // 목록 새로고침
+          });
+        } else {
+          showPopup(data.message || '저장 중 오류가 발생했습니다.');
+        }
       } else {
-        showPopup('저장 중 오류가 발생했습니다.');
+        const errorData = await response.json();
+        showPopup(errorData.message || '저장 중 오류가 발생했습니다.');
       }
     } catch (error) {
       console.error('저장 오류:', error);
       showPopup('저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -299,24 +377,25 @@ const UserManagement = () => {
               width: '200px'
             }}
             onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+            disabled={isLoading}
           />
           <button
             onClick={handleSearch}
             disabled={isLoading}
             style={{
               padding: '8px 16px',
-              backgroundColor: '#007bff',
+              backgroundColor: isLoading ? '#ccc' : '#007bff',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
               display: 'flex',
               alignItems: 'center',
               gap: '5px',
-              cursor: 'pointer'
+              cursor: isLoading ? 'not-allowed' : 'pointer'
             }}
           >
             <Search size={16} />
-            검색
+            {isLoading ? '검색중...' : '검색'}
           </button>
         </div>
       </div>
@@ -329,26 +408,26 @@ const UserManagement = () => {
         marginBottom: '20px'
       }}>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handleAddUser} style={buttonStyle}>
+          <button onClick={handleAddUser} style={buttonStyle} disabled={isLoading}>
             <Plus size={16} />
             행추가
           </button>
-          <button onClick={() => handleDeleteUser(0)} style={buttonStyle}>
+          <button onClick={() => handleDeleteUser(users.findIndex(u => u.selected))} style={buttonStyle} disabled={isLoading}>
             <Trash2 size={16} />
             행삭제
           </button>
-          <button onClick={handleDeleteSelected} style={buttonStyle}>
+          <button onClick={handleDeleteSelected} style={buttonStyle} disabled={isLoading}>
             <Trash2 size={16} />
             다중삭제
           </button>
-          <button onClick={handleReset} style={buttonStyle}>
+          <button onClick={handleReset} style={buttonStyle} disabled={isLoading}>
             초기화
           </button>
-          <button onClick={handleDownload} style={buttonStyle}>
+          <button onClick={handleDownload} style={buttonStyle} disabled={isLoading}>
             <Download size={16} />
             다운로드
           </button>
-          <button onClick={handleUpload} style={buttonStyle}>
+          <button onClick={handleUpload} style={buttonStyle} disabled={isLoading}>
             <Upload size={16} />
             업로드
           </button>
@@ -369,6 +448,7 @@ const UserManagement = () => {
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(e.target.checked)}
+                  disabled={isLoading}
                 />
               </th>
               <th style={headerStyle}>순번</th>
@@ -393,15 +473,17 @@ const UserManagement = () => {
                       type="checkbox"
                       checked={user.selected || false}
                       onChange={(e) => handleSelectUser(index, e.target.checked)}
+                      disabled={isLoading}
                     />
                   </td>
                   <td style={cellStyle}>{index + 1}</td>
                   <td style={cellStyle}>
                     <input
                       type="text"
-                      value={user.name || ''}
+                      value={user.name || user.userName || ''}
                       onChange={(e) => handleUpdateUser(index, 'name', e.target.value)}
                       style={inputStyle}
+                      disabled={isLoading}
                     />
                   </td>
                   <td style={cellStyle}>
@@ -410,6 +492,7 @@ const UserManagement = () => {
                       value={user.email || ''}
                       onChange={(e) => handleUpdateUser(index, 'email', e.target.value)}
                       style={inputStyle}
+                      disabled={isLoading}
                     />
                   </td>
                   <td style={cellStyle}>
@@ -422,7 +505,9 @@ const UserManagement = () => {
                           handleUpdateUser(index, 'password', '');
                         }
                       }}
+                      placeholder={user.isNew ? '비밀번호 입력' : '변경시에만 입력'}
                       style={inputStyle}
+                      disabled={isLoading}
                     />
                   </td>
                   <td style={cellStyle}>
@@ -430,6 +515,7 @@ const UserManagement = () => {
                       value={user.role || ''}
                       onChange={(e) => handleUpdateUser(index, 'role', e.target.value)}
                       style={selectStyle}
+                      disabled={isLoading}
                     >
                       <option value="">선택</option>
                       {roleOptions.map(option => (
@@ -453,10 +539,10 @@ const UserManagement = () => {
         gap: '10px',
         marginTop: '20px'
       }}>
-        <button onClick={handleSave} style={primaryButtonStyle}>
-          저장
+        <button onClick={handleSave} style={primaryButtonStyle} disabled={isLoading}>
+          {isLoading ? '저장중...' : '저장'}
         </button>
-        <button style={buttonStyle}>
+        <button style={buttonStyle} disabled={isLoading}>
           취소
         </button>
       </div>

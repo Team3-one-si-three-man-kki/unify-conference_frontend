@@ -17,15 +17,15 @@ const TenantDashboardWithRouter = () => {
   // 역할별 탭 권한 정의
   const rolePermissions = {
     'ADMIN': {
-      tabs: ['users', 'modules', 'login', 'meeting', 'attendance', 'moduleManagement'],
+      tabs: ['users', 'modules', 'login', 'meeting', 'previousMeeting', 'attendance', 'moduleManagement'],
       description: '모든 기능에 접근 가능'
     },
     'MANAGER': {
-      tabs: ['users', 'modules', 'login', 'meeting', 'attendance', 'moduleManagement'],
+      tabs: ['users', 'modules', 'login', 'meeting', 'previousMeeting', 'attendance', 'moduleManagement'],
       description: '모든 기능에 접근 가능'
     },
     'USER': {
-      tabs: ['meeting', 'attendance'],
+      tabs: ['meeting', 'previousMeeting', 'attendance'],
       description: '미팅 관련 기능만 접근 가능'
     }
   };
@@ -52,6 +52,11 @@ const TenantDashboardWithRouter = () => {
       icon: '📹',
       path: '/meeting',
     },
+    previousMeeting: { 
+      label: '이전 미팅', 
+      icon: '🕒',
+      path: '/previous-meeting',
+    },
     attendance: { 
       label: '출석 관리', 
       icon: '✅',
@@ -69,7 +74,7 @@ const TenantDashboardWithRouter = () => {
     //checkAuthentication();
 
     setUserRole('ADMIN'); // 모든 권한 부여
-    setAllowedTabs(['users', 'modules', 'login', 'meeting', 'attendance', 'moduleManagement']);
+    setAllowedTabs(['users', 'modules', 'login', 'meeting', 'previousMeeting', 'attendance', 'moduleManagement']);
     setTenantName('개발 테스트');
   
     

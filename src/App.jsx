@@ -6,8 +6,9 @@ import { UniconMain as Main } from "./pages/Home/unicon_main";
 import UserManagementDashboard from "./pages/UserManagement/UserManagement";
 import ModuleMarketplace from "./pages/ModuleMarketplace/ModuleMarketplace";
 import AttendanceModule from "./pages/AttendanceModule/AttendanceModule";
-import SignUpPage from "./pages/SignUp/SignUpPage"
-import LoginPage from "./pages/Login/LoginPage"
+import SignUpPage from "./pages/SignUp/SignUpPage";
+import LoginPage from "./pages/Login/LoginPage";
+import ModuleManagement from "./pages/ModuleManagement/ModuleManagement";
 import "./App.css";
 
 // 임시 컴포넌트들
@@ -16,13 +17,6 @@ const MeetingPage = () => (
   <div style={{ padding: '20px' }}>
     <h1>미팅 생성</h1>
     <p>미팅 생성 페이지입니다. (개발 예정)</p>
-  </div>
-);
-
-const ModuleManagement = () => (
-  <div style={{ padding: '20px' }}>
-    <h1>모듈 관리</h1>
-    <p>모듈 관리 페이지입니다. (개발 예정)</p>
   </div>
 );
 

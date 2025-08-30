@@ -1,0 +1,140 @@
+.module-management-page {
+    padding: 20px;
+    background-color: #f8f9fa;
+    height: 100%;
+}
+
+.page-title-box {
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.page-title-box h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.breadcrumb {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+.main-container {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+.module-list-panel {
+    flex: 4;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.details-panel {
+    flex: 6;
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.module-list-panel h3,
+.details-panel h3 {
+    font-size: 18px;
+    margin-top: 0;
+    margin-bottom: 20px;
+}
+
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+}
+
+.module-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+}
+
+.module-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.module-icon {
+    font-size: 40px;
+    line-height: 1;
+}
+
+.module-name {
+    font-weight: 600;
+    font-size: 16px;
+    margin: 12px 0 4px 0;
+}
+
+.module-code {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+.module-desc {
+    font-size: 13px;
+    color: #4b5563;
+    min-height: 3.2em; /* 2-3줄 높이 확보 */
+    margin-bottom: 12px;
+}
+
+.module-info {
+    font-size: 12px;
+    color: #6b7280;
+    margin: 12px 0;
+}
+
+.details-button {
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 500;
+    width: 100%;
+}
+
+.details-header {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.details-header p {
+    margin: 5px 0 0 0;
+    font-size: 14px;
+    color: #555;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    border-bottom: 1px solid #dee2e6;
+    padding: 12px;
+    text-align: left;
+    font-size: 14px;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}

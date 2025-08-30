@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import './TenantDashboard.css';
+import apiClient from '../../../services/api/api';
 
 
 const TenantDashboardWithRouter = () => {
@@ -194,26 +195,22 @@ const TenantDashboardWithRouter = () => {
     setShowLogoutConfirm(true);
   };
 
-  const confirmLogout = async () => {
+   const confirmLogout = async () => {
     try {
-      // 로그아웃 API 호출
-      await fetch('/InsWebApp/TNU0000Logout.pwkjson', {
-        method: 'POST',
-        headers: {
-          'Authorization': sessionStorage.getItem('accessToken'),
-          'Content-Type': 'application/json'
-        }
-      });
-    } catch (error) {
-      console.error('로그아웃 오류:', error);
-    } finally {
-      // 세션 클리어
-      sessionStorage.clear();
-      localStorage.removeItem('refreshToken');
+      // 1. apiClient를 사용해 백엔드에 로그아웃 요청을 보냅니다.
+      await apiClient.post('/api/user/logout');
       
-      // 로그인 페이지로 리다이렉트
-      const tenantId = getQueryParam('tenant');
-      navigate('/login' + (tenantId ? `?tenant=${tenantId}` : ''));
+      alert('성공적으로 로그아웃되었습니다.');
+
+    } catch (error) {
+      console.error('로그아웃 실패:', error);
+      alert('로그아웃 중 문제가 발생했습니다.');
+    } finally {
+      // 2. API 호출 성공 여부와 관계없이 클라이언트의 토큰 정보를 확실히 제거합니다.
+      sessionStorage.removeItem('accessToken');
+      
+      // 3. 로그인 페이지로 안전하게 이동시킵니다.
+      navigate('/login');
     }
   };
 

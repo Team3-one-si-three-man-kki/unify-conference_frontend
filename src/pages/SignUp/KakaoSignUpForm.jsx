@@ -38,7 +38,7 @@ const KakaoSignUpForm = ({ onSubmit }) => {
     const handleKakaoAuth = async () => {
         try {
             // 🔽 axios.get 대신 apiClient.get을 사용합니다.
-            const response = await apiClient.get('http://localhost:9093/api/guest/kakao/auth-url?type=signup');
+            const response = await apiClient.get('/api/guest/kakao/auth-url?type=signup');
             const { url } = response.data;
             if (url) {
                 window.location.href = url;

@@ -1,0 +1,40 @@
+.module-layout-widget {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.module-layout-widget .layout-designer {
+  height: 100%;
+  width: 100%;
+  border-radius: 0;
+}
+
+/* 대시보드용 컴팩트 스타일 */
+.module-layout-widget.compact .layout-designer-header {
+  min-height: 50px;
+  padding: 0.75rem 1rem;
+}
+
+.module-layout-widget.compact .layout-designer-title {
+  font-size: 16px;
+}
+
+.module-layout-widget.compact .layout-designer-subtitle {
+  font-size: 12px;
+}
+
+.module-layout-widget.compact .module-list {
+  width: 30%;
+  min-width: 250px;
+  max-width: 280px;
+  padding: 1rem 0.75rem;
+}
+
+.module-layout-widget.compact .drop-zones-container {
+  padding: 1rem;
+}

@@ -1,4 +1,4 @@
-import { LayoutDesigner } from '../../components/features/session/LayoutDesigner';
+import { LayoutDesigner } from '../../components/features/sessionManager/LayoutDesigner';
 
 export const SessionDesigner = ({ onNext, onPrev, sessionInfo, initialLayoutConfig, readOnly = false }) => {
   const handleLayoutSave = (layoutData) => {

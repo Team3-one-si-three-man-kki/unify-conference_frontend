@@ -7,6 +7,9 @@ import './LayoutDesigner.css';
 
 export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = false, initialLayoutConfig, readOnly = false }) => {
   const [availableModulesList, setAvailableModulesList] = useState([]);
+  const [showInitialAnimation, setShowInitialAnimation] = useState(true);
+  const [userHasInteracted, setUserHasInteracted] = useState(false);
+
   const getInitialPlacedModules = () => {
     const defaultModules = {
       main_video: [{
@@ -63,6 +66,12 @@ export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = f
 
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
+    
+    // 사용자가 드래그를 시작하면 초기 애니메이션 끄기
+    if (showInitialAnimation) {
+      setShowInitialAnimation(false);
+      setUserHasInteracted(true);
+    }
   };
 
   const handleDragEnd = (event) => {
@@ -332,13 +341,14 @@ export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = f
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="layout-designer">
+      <div className={`layout-designer ${showInitialAnimation ? 'initial-animation' : ''}`}>
 
         <div className="layout-designer-content">
           <ModuleList 
             totalPlacedModules={getTotalModulesCount()} 
             placedModules={placedModules}
             onModulesLoad={setAvailableModulesList}
+            showInitialAnimation={showInitialAnimation}
           />
           <DropZone 
             placedModules={placedModules}
@@ -350,6 +360,8 @@ export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = f
             showNavigation={showNavigation}
             sessionInfo={sessionInfo}
             readOnly={false}
+            showInitialAnimation={showInitialAnimation}
+            userHasInteracted={userHasInteracted}
           />
         </div>
 
@@ -366,6 +378,14 @@ export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = f
             </div>
           ) : null}
         </DragOverlay>
+        
+        {showInitialAnimation && (
+          <div className="drag-drop-guide">
+            <div className="drag-drop-cursor">👆</div>
+            <div className="drag-path-start"></div>
+            <div className="drag-path-end"></div>
+          </div>
+        )}
       </div>
     </DndContext>
   );

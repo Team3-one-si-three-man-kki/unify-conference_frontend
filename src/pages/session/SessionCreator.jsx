@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { SessionInfoStep } from '../../components/features/session/SessionInfoStep';
+import { SessionInfoStep } from '../../components/features/sessionManager/SessionInfoStep';
 import { SessionDesigner } from './SessionDesigner';
-import { SessionInviteStep } from '../../components/features/session/SessionInviteStep';
-import { SessionCompleteStep } from '../../components/features/session/SessionCompleteStep';
+import { SessionInviteStep } from '../../components/features/sessionManager/SessionInviteStep';
+import { SessionCompleteStep } from '../../components/features/sessionManager/SessionCompleteStep';
 import './SessionCreator.css';
 
 export const SessionCreator = () => {

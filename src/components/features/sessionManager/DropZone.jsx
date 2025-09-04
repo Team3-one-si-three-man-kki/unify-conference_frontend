@@ -162,9 +162,12 @@ const DropZoneArea = ({ zone, placedModules = [], onRemoveModule, readOnly = fal
   );
 };
 
-export const DropZone = ({ placedModules, onRemoveModule, onClearAll, onSaveLayout, onPrev, totalModulesCount, showNavigation = false, sessionInfo, readOnly = false }) => {
+export const DropZone = ({ placedModules, onRemoveModule, onClearAll, onSaveLayout, onPrev, totalModulesCount, showNavigation = false, sessionInfo, readOnly = false, showInitialAnimation = false, userHasInteracted = false }) => {
+  // 다음 단계 버튼 애니메이션 여부 결정
+  const shouldShowNextButtonAnimation = userHasInteracted && totalModulesCount > 0;
+
   return (
-    <div className={`drop-zones-container ${readOnly ? 'read-only' : ''}`}>
+    <div className={`drop-zones-container ${readOnly ? 'read-only' : ''} ${showInitialAnimation ? 'initial-animation' : ''}`}>
       {!readOnly && (
         <div className="drop-zones-header">
           <div className="drop-zones-info">
@@ -190,7 +193,7 @@ export const DropZone = ({ placedModules, onRemoveModule, onClearAll, onSaveLayo
             </button>
             
             <button 
-              className="save-btn"
+              className={`save-btn ${shouldShowNextButtonAnimation ? 'next-button-animation' : ''}`}
               onClick={onSaveLayout}
             >
               {showNavigation ? '다음 단계 ▶' : '레이아웃 저장'}

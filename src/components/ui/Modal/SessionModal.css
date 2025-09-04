@@ -1,0 +1,129 @@
+.session-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: sessionFadeIn 0.2s ease-out;
+}
+
+.session-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: sessionSlideIn 0.3s ease-out;
+}
+
+.session-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 24px 24px 16px 24px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.session-modal-icon {
+  font-size: 24px;
+}
+
+.session-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0;
+}
+
+.session-modal-body {
+  padding: 16px 24px;
+}
+
+.session-modal-message {
+  font-size: 16px;
+  color: #4a5568;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.session-modal-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px 24px 24px 24px;
+  justify-content: flex-end;
+}
+
+.session-modal-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.session-modal-button.cancel {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.session-modal-button.cancel:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.session-modal-button.confirm {
+  background: #4285f4;
+  color: white;
+}
+
+.session-modal-button.confirm:hover {
+  background: #1976d2;
+  transform: translateY(-1px);
+}
+
+@keyframes sessionFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes sessionSlideIn {
+  from {
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* 반응형 */
+@media (max-width: 480px) {
+  .session-modal-content {
+    width: 95%;
+    margin: 0 10px;
+  }
+  
+  .session-modal-actions {
+    flex-direction: column;
+  }
+  
+  .session-modal-button {
+    width: 100%;
+  }
+}

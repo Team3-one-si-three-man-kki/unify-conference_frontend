@@ -1,6 +1,5 @@
 import { useDraggable } from '@dnd-kit/core';
 import { useState, useEffect } from 'react';
-// import { availableModules } from '../../../utils/moduleData'; // 백엔드 API 사용으로 더 이상 불필요
 import apiClient from '../../../services/api/api';
 import './ModuleList.css';
 
@@ -52,7 +51,7 @@ const ModuleCard = ({ module, isPlaced }) => {
 };
 
 // 모듈 리스트 컴포넌트
-export const ModuleList = ({ totalPlacedModules = 0, placedModules = {}, onModulesLoad = null }) => {
+export const ModuleList = ({ totalPlacedModules = 0, placedModules = {}, onModulesLoad = null, showInitialAnimation = false }) => {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -160,7 +159,7 @@ export const ModuleList = ({ totalPlacedModules = 0, placedModules = {}, onModul
   }
 
   return (
-    <div className="module-list">
+    <div className={`module-list ${showInitialAnimation ? 'initial-animation' : ''}`}>
       <div className="module-list-header">
         <div className="module-list-title-container">
           <h3 className="module-list-title">모듈 라이브러리</h3>

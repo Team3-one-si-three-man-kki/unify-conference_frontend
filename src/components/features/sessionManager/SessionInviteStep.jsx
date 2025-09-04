@@ -7,6 +7,17 @@ export const SessionInviteStep = ({ onNext, onPrev, sessionData }) => {
     linkExpiry: ''
   });
 
+  // 순차적 애니메이션을 위한 상태
+  const [currentAnimationStep, setCurrentAnimationStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState([]);
+  const [maxParticipantsTouched, setMaxParticipantsTouched] = useState(false);
+
+  // 애니메이션 시퀀스 관리
+  useEffect(() => {
+    // 컴포넌트 마운트 시 설명과 다음 버튼 동시 애니메이션 시작
+    setCurrentAnimationStep(1.5); // 동시 애니메이션
+  }, []);
+
   useEffect(() => {
     // 만료일 계산 (종료 시간 기준)
     if (sessionData?.sessionInfo?.endTime) {
@@ -26,6 +37,32 @@ export const SessionInviteStep = ({ onNext, onPrev, sessionData }) => {
     }
   }, [sessionData]);
 
+  // 최대 참여자 수 변경 감지
+  useEffect(() => {
+    if ((inviteInfo.maxParticipants !== 5 || maxParticipantsTouched) && !completedSteps.includes(1)) {
+      setCompletedSteps(prev => [...prev, 1]);
+      setCurrentAnimationStep(0); // 애니메이션 완료
+    }
+  }, [inviteInfo.maxParticipants, maxParticipantsTouched, completedSteps]);
+
+  // 애니메이션 클래스 결정 함수
+  const getAnimationClass = (stepNumber) => {
+    if (completedSteps.includes(stepNumber)) {
+      return 'completed-step';
+    } else if (currentAnimationStep === stepNumber || (currentAnimationStep === 1.5 && stepNumber === 1)) {
+      return 'animate-hint';
+    }
+    return '';
+  };
+
+  // 다음 버튼 애니메이션 클래스 결정
+  const getNextButtonClass = () => {
+    if (currentAnimationStep === 1.5) {
+      return 'ready-to-animate';
+    }
+    return '';
+  };
+
   const handleParticipantChange = (value) => {
     const numValue = parseInt(value);
     if (!isNaN(numValue) && numValue >= 2 && numValue <= 50) {
@@ -44,6 +81,8 @@ export const SessionInviteStep = ({ onNext, onPrev, sessionData }) => {
         ...prev,
         maxParticipants: value === '' ? '' : parseInt(value)
       }));
+      // 최대 참여자 수 상호작용 감지
+      setMaxParticipantsTouched(true);
     }
   };
 
@@ -120,7 +159,7 @@ export const SessionInviteStep = ({ onNext, onPrev, sessionData }) => {
                   <span className="participant-unit">명</span>
                 </div>
               </div>
-              <p className="info-note">
+              <p className={`info-note ${getAnimationClass(1)}`}>
                 세션에 참여할 수 있는 최대 인원을 설정해주세요. 설정한 인원만큼 동시에 세션에 참여할 수 있습니다.
               </p>
             </div>
@@ -140,7 +179,7 @@ export const SessionInviteStep = ({ onNext, onPrev, sessionData }) => {
           
           <button 
             type="button" 
-            className="next-button"
+            className={`next-button ${getNextButtonClass()}`}
             onClick={handleNext}
           >
             다음 단계

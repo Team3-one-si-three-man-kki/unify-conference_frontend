@@ -529,3 +529,42 @@
     flex-shrink: 0;
   }
 }
+
+/* 초기 애니메이션 스타일 */
+.drop-zones-container.initial-animation .drop-zone:not(.main_video) {
+  border: 3px solid #4285f4;
+  box-shadow: 0 0 20px rgba(66, 133, 244, 0.3);
+  animation: dropZonePulse 2s ease-in-out infinite;
+}
+
+@keyframes dropZonePulse {
+  0%, 100% {
+    border-color: #4285f4;
+    box-shadow: 0 0 20px rgba(66, 133, 244, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    border-color: #1976d2;
+    box-shadow: 0 0 30px rgba(66, 133, 244, 0.5);
+    transform: scale(1.02);
+  }
+}
+
+/* 다음 단계 버튼 애니메이션 */
+.save-btn.next-button-animation {
+  animation: nextButtonPulse 2s ease-in-out infinite;
+  box-shadow: 0 0 20px rgba(0, 123, 255, 0.5);
+}
+
+@keyframes nextButtonPulse {
+  0%, 100% {
+    background: #007bff;
+    box-shadow: 0 0 20px rgba(0, 123, 255, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    background: #0056b3;
+    box-shadow: 0 0 30px rgba(0, 123, 255, 0.8);
+    transform: scale(1.05);
+  }
+}

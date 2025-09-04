@@ -191,6 +191,90 @@
   outline-offset: 2px;
 }
 
+/* 초기 애니메이션 스타일 */
+.layout-designer.initial-animation .drag-drop-guide {
+  display: block;
+  animation: dragDropGuide 2.5s linear infinite;
+}
+
+.drag-drop-guide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+  display: none;
+}
+
+.drag-path-start {
+  position: absolute;
+  left: 140px;
+  top: 120px;
+  width: 4px;
+  height: 4px;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.drag-path-end {
+  position: absolute;
+  left: calc(280px + 20% + 2 * 10%);
+  bottom: 150px;
+  width: 4px;
+  height: 4px;
+  background: transparent;
+  border-radius: 50%;
+}
+
+.drag-drop-cursor {
+  position: absolute;
+  font-size: 48px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  left: 140px;
+  top: 165px;
+}
+
+@keyframes dragDropGuide {
+  0% {
+    left: 140px;
+    top: 165px;
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  20% {
+    left: 180px;
+    top: 185px;
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  40% {
+    left: 220px;
+    top: 205px;
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  60% {
+    left: 260px;
+    top: 225px;
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  80% {
+    left: 300px;
+    top: 245px;
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    left: 340px;
+    top: 265px;
+    transform: scale(1);
+    opacity: 0.9;
+  }
+}
+
 /* 로딩 상태 (향후 API 연동 시 사용) */
 .layout-designer.loading {
   pointer-events: none;
@@ -215,4 +299,22 @@
 @keyframes spin {
   0% { transform: translate(-50%, -50%) rotate(0deg); }
   100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* 모듈 리스트 초기 애니메이션 - 첫 번째 모듈에만 적용 */
+.layout-designer-content .module-list.initial-animation .module-category:first-child .category-modules .module-card:first-child {
+  border: 3px solid #4285f4;
+  box-shadow: 0 0 20px rgba(66, 133, 244, 0.3);
+  animation: moduleListPulse 2s ease-in-out infinite;
+}
+
+@keyframes moduleListPulse {
+  0%, 100% {
+    border-color: #4285f4;
+    box-shadow: 0 0 20px rgba(66, 133, 244, 0.3);
+  }
+  50% {
+    border-color: #1976d2;
+    box-shadow: 0 0 30px rgba(66, 133, 244, 0.5);
+  }
 }

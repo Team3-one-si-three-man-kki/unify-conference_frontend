@@ -13,6 +13,8 @@ const ModuleMarketplace = () => {
   const [modalType, setModalType] = useState('alert');
   const [modalCallback, setModalCallback] = useState(null);
 
+  const API_BASE_URL = '/api';
+
   // 아이콘 매핑
   const iconComponents = {
     chat: <FiMessageCircle size={24} />,
@@ -39,11 +41,6 @@ const ModuleMarketplace = () => {
     camera: { backgroundColor: '#fef2f2', color: '#dc2626' }
   };
 
-  // 컴포넌트 마운트 시 모듈 목록 로드
-  useEffect(() => {
-    loadModuleList();
-  }, []);
-
   // 필터링 및 검색
   useEffect(() => {
     let filtered = modules;
@@ -56,7 +53,7 @@ const ModuleMarketplace = () => {
     // 검색 키워드 필터
     if (searchKeyword.trim()) {
       filtered = filtered.filter(module => 
-        module.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        module.name && module.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
         (module.description && module.description.toLowerCase().includes(searchKeyword.toLowerCase()))
       );
     }
@@ -91,77 +88,269 @@ const ModuleMarketplace = () => {
   // URL에서 tenant 파라미터 가져오기
   const getTenantId = () => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('tenant') || 'default-tenant';
+    const tenantParam = params.get('tenant');
+    
+    // URL 파라미터가 있으면 우선 사용
+    if (tenantParam && tenantParam.trim() !== '' && tenantParam.match(/^\d+$/)) {
+      return tenantParam;
+    }
+    
+    // JWT 토큰에서 tenantId 추출 (가장 중요!)
+    const token = getAuthToken();
+    if (token) {
+      try {
+        // Bearer 제거하고 토큰만 추출
+        const cleanToken = token.replace('Bearer ', '');
+        const payload = JSON.parse(atob(cleanToken.split('.')[1]));
+        if (payload.tenantId) {
+          console.log('JWT에서 추출한 tenantId:', payload.tenantId);
+          return String(payload.tenantId);
+        }
+      } catch (e) {
+        console.log('JWT 디코딩 실패:', e);
+      }
+    }
+    
+    // localStorage에서 구독 정보가 있는 tenantId 찾기
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('subscribedModules_') && key !== 'subscribedModules_default-tenant') {
+        const tenantId = key.replace('subscribedModules_', '');
+        if (tenantId && tenantId.match(/^\d+$/)) {
+          return tenantId;
+        }
+      }
+    }
+    
+    // sessionStorage에서 사용자 정보 확인
+    const userInfo = JSON.parse(sessionStorage.getItem('userInfo') || '{}');
+    if (userInfo.tenantId) {
+      return String(userInfo.tenantId);
+    }
+    
+    const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
+    if (userData.tenantId) {
+      return String(userData.tenantId);
+    }
+    
+    // 최종 기본값
+    return "1";
   };
 
-  // 모듈 목록 로드
+  // 토큰 가져오기 함수 - 모든 가능한 저장소 확인 (개선됨)
+  const getAuthToken = () => {
+    // 일반적인 토큰 저장 키들을 확인
+    const possibleTokenKeys = [
+      'token',
+      'accessToken', 
+      'authToken',
+      'jwt',
+      'jwtToken',
+      'authorization'
+    ];
+    
+    // localStorage에서 먼저 확인
+    for (const key of possibleTokenKeys) {
+      const token = localStorage.getItem(key);
+      if (token && token.trim()) {
+        console.log(`토큰을 localStorage.${key}에서 찾았습니다:`, token.substring(0, 20) + '...');
+        return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      }
+    }
+    
+    // sessionStorage에서도 확인
+    for (const key of possibleTokenKeys) {
+      const token = sessionStorage.getItem(key);
+      if (token && token.trim()) {
+        console.log(`토큰을 sessionStorage.${key}에서 찾았습니다:`, token.substring(0, 20) + '...');
+        return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
+      }
+    }
+    
+    // 모든 storage 내용 로깅
+    console.warn('토큰을 찾을 수 없습니다.');
+    console.log('localStorage keys:', Object.keys(localStorage));
+    console.log('sessionStorage keys:', Object.keys(sessionStorage));
+    
+    return null;
+  };
+
+  // 인증 실패 처리 함수
+  const handleAuthError = (status) => {
+    if (status === 401) {
+      showPopup('로그인이 만료되었습니다. 다시 로그인해주세요.', false, () => {
+        // 토큰 정리
+        localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('authToken');
+        sessionStorage.clear();
+        
+        // 로그인 페이지로 리다이렉트 (실제 로그인 페이지 경로로 수정)
+        window.location.href = '/login';
+      });
+    } else if (status === 403) {
+      showPopup('접근 권한이 없습니다. 관리자에게 문의하세요.');
+    } else {
+      showPopup('인증 오류가 발생했습니다. 다시 시도해주세요.');
+    }
+  };
+
+  // 로그인 상태 확인 함수
+  const checkLoginStatus = () => {
+    const token = getAuthToken();
+    if (!token) {
+      showPopup('로그인이 필요합니다.', false, () => {
+        window.location.href = '/login';
+      });
+      return false;
+    }
+    return true;
+  };
+
+  // 모듈 목록 로드 (Spring Boot API 호출) - 개선됨
   const loadModuleList = async () => {
+    // 먼저 로그인 상태 확인
+    if (!checkLoginStatus()) {
+      return;
+    }
+
     const tenantId = getTenantId();
     setIsLoading(true);
 
     try {
-      const response = await fetch(`/InsWebApp/MarketplaceModuleList.pwkjson?pageSize=50&pageIndex=1&tenantId=${tenantId}`);
+      const apiUrl = `${API_BASE_URL}/marketplace/modules?pageSize=50&pageIndex=1&tenantId=${tenantId}`;
+      console.log('API 요청 URL:', apiUrl);
+
+      const token = getAuthToken();
+      if (!token) {
+        handleAuthError(401);
+        return;
+      }
+
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': token
+      };
+
+      console.log('요청 헤더:', {
+        'Content-Type': headers['Content-Type'],
+        'Authorization': token.substring(0, 20) + '...'
+      });
+      
+      const response = await fetch(apiUrl, { 
+        method: 'GET',
+        headers,
+        credentials: 'include' // 쿠키도 함께 전송
+      });
+      
+      console.log('응답 상태:', response.status);
+      console.log('응답 헤더:', Object.fromEntries(response.headers.entries()));
       
       if (response.ok) {
         const data = await response.json();
-        let moduleList = data.moduleListVo?.moduleVoList || data.moduleVoList || [];
+        console.log('응답 데이터:', data);
         
-        // 구독 상태 로드 및 모듈 데이터 처리
-        const processedModules = await processModuleList(moduleList);
-        setModules(processedModules);
+        if (data.success) {
+          let moduleList = data.moduleVoList || [];
+          console.log('모듈 리스트:', moduleList);
+          
+          // 구독 상태 로드 및 모듈 데이터 처리
+          const processedModules = await processModuleList(moduleList);
+          setModules(processedModules);
+        } else {
+          throw new Error(data.error || '모듈 목록을 불러오는데 실패했습니다.');
+        }
       } else {
-        // 대체 API 시도
-        await loadModuleListFallback();
+        // 인증/권한 오류 처리
+        if (response.status === 401 || response.status === 403) {
+          handleAuthError(response.status);
+          return;
+        }
+        
+        const errorText = await response.text();
+        console.error('서버 오류 응답:', errorText);
+        throw new Error(`서버 응답 오류: ${response.status}`);
       }
     } catch (error) {
       console.error('모듈 목록 로드 오류:', error);
-      showPopup('모듈 목록을 불러오는데 실패했습니다.');
+      
+      // 네트워크 오류인지 확인
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        showPopup('서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.');
+      } else {
+        showPopup('모듈 목록을 불러오는데 실패했습니다: ' + error.message);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 대체 API 호출
-  const loadModuleListFallback = async () => {
-    const tenantId = getTenantId();
+  // 컴포넌트 마운트 시 로그인 상태 확인 후 모듈 목록 로드
+  useEffect(() => {
+    console.log('ModuleMarketplace 컴포넌트 마운트됨');
+    
+    // 토큰 존재 여부 미리 확인
+    const token = getAuthToken();
+    if (token) {
+      console.log('토큰이 존재합니다. 모듈 목록을 로드합니다.');
+      loadModuleList();
+    } else {
+      console.warn('토큰이 없습니다. 로그인이 필요합니다.');
+      showPopup('로그인이 필요합니다.', false, () => {
+        window.location.href = '/login'; // 실제 로그인 페이지 경로로 수정
+      });
+    }
+  }, []);
+
+  // 구독된 모듈 목록 로드 (서버에서 실제 구독 상태 가져오기)
+  const loadSubscribedModules = async () => {
     try {
-      const response = await fetch('/InsWebApp/ModuleList.pwkjson', {
-        method: 'POST',
+      const token = getAuthToken();
+      if (!token) {
+        return [];
+      }
+
+      const tenantId = getTenantId();
+      const subscribedUrl = `/api/modules/subscribed?tenantId=${tenantId}`;
+      
+      const response = await fetch(subscribedUrl, {
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token
         },
-        body: JSON.stringify({ pageSize: 50, pageIndex: 1, tenantId })
+        credentials: 'include'
       });
 
       if (response.ok) {
         const data = await response.json();
-        let moduleList = data.moduleListVo?.moduleVoList || data.moduleVoList || [];
-        const processedModules = await processModuleList(moduleList);
-        setModules(processedModules);
+        if (data.success) {
+          // 구독된 모듈 ID들을 배열로 반환
+          return data.subscribedModules.map(module => module.moduleId);
+        }
       }
+      
+      return [];
     } catch (error) {
-      console.error('대체 API 오류:', error);
-      showPopup('모듈 목록을 불러오는데 실패했습니다.');
+      console.error('구독 모듈 목록 로드 오류:', error);
+      return [];
     }
   };
 
-  // 모듈 데이터 처리
+  // 모듈 데이터 처리 함수 수정 (실제 구독 상태 반영)
   const processModuleList = async (moduleList) => {
-    const tenantId = getTenantId();
+    // 서버에서 실제 구독 상태 가져오기
+    const subscribedModuleIds = await loadSubscribedModules();
     
-    // 구독된 모듈 목록 가져오기
-    const subscribedModulesKey = `subscribedModules_${tenantId}`;
-    const subscribedModules = JSON.parse(localStorage.getItem(subscribedModulesKey) || '[]');
-
     return moduleList.map((module, index) => {
       const moduleCode = module.code || module.moduleId;
-      const moduleId = module.moduleId || module.id;
+      const moduleId = String(module.moduleId || module.id);
 
       // 아이콘 설정
       const iconList = ["chat", "video", "canvas", "attendance", "drowsy", "absent", "screen", "mic", "camera"];
       let icon = iconList[index % iconList.length];
       
-      // 특정 모듈 ID에 따른 아이콘 설정
+      // 특정 모듈 코드에 따른 아이콘 설정
       switch (moduleCode) {
         case 'CHAT': icon = "chat"; break;
         case 'VIDEO': icon = "video"; break;
@@ -174,6 +363,17 @@ const ModuleMarketplace = () => {
         case 'MIC': icon = "mic"; break;
         case 'CAMERA': icon = "camera"; break;
         case 'ATTENDANCE': icon = "attendance"; break;
+        default: 
+          // 모듈 이름으로 아이콘 추정
+          if (module.name) {
+            const name = module.name.toLowerCase();
+            if (name.includes('채팅') || name.includes('chat')) icon = "chat";
+            else if (name.includes('비디오') || name.includes('video')) icon = "video";
+            else if (name.includes('캔버스') || name.includes('canvas')) icon = "canvas";
+            else if (name.includes('퀴즈') || name.includes('quiz')) icon = "attendance";
+            else if (name.includes('화면') || name.includes('screen')) icon = "screen";
+          }
+          break;
       }
 
       // 카테고리 설정
@@ -196,19 +396,26 @@ const ModuleMarketplace = () => {
         case 'CAMERA':
           category = 'management';
           break;
+        default:
+          // 모듈 이름으로 카테고리 추정
+          if (module.name) {
+            const name = module.name.toLowerCase();
+            if (name.includes('채팅') || name.includes('비디오') || name.includes('화면')) category = 'meeting';
+            else if (name.includes('퀴즈') || name.includes('교육')) category = 'education';
+            else if (name.includes('관리') || name.includes('참가자')) category = 'management';
+          }
+          break;
       }
 
-      // 구독 상태 확인
-      const subscribed = subscribedModules.includes(moduleCode) || 
-                        subscribedModules.includes(String(moduleId)) || 
-                        subscribedModules.includes(moduleId);
+      // 실제 구독 상태 확인 (서버에서 가져온 데이터 기준)
+      const subscribed = subscribedModuleIds.includes(moduleId);
 
       // 가격 포맷팅
       const price = module.price ? parseInt(module.price, 10) : 0;
       const formattedPrice = price > 0 ? `₩${price.toLocaleString()}` : '무료';
 
-      // 평점 생성
-      const rating = (Math.random() + 4.0).toFixed(1);
+      // 평점 생성 (임시 - 추후 실제 데이터로 대체)
+      const rating = (Math.random() * 1 + 4.0).toFixed(1);
 
       return {
         ...module,
@@ -234,7 +441,7 @@ const ModuleMarketplace = () => {
     return '★'.repeat(fullStars) + (hasHalfStar ? '☆' : '') + '☆'.repeat(emptyStars) + ` ${rating}`;
   };
 
-  // 구독 상태 업데이트
+  // 구독 상태 업데이트 (로컬 스토리지)
   const updateSubscriptionStatus = (moduleId, moduleCode, isSubscribed) => {
     const tenantId = getTenantId();
     if (!tenantId) return;
@@ -258,7 +465,7 @@ const ModuleMarketplace = () => {
     localStorage.setItem(subscribedModulesKey, JSON.stringify(subscribedModules));
   };
 
-  // 모듈 구독
+  // 실제 모듈 구독 API 호출 (기존 API에 맞춤)
   const subscribeModule = async (module) => {
     const tenantId = getTenantId();
     if (!tenantId) {
@@ -267,40 +474,67 @@ const ModuleMarketplace = () => {
     }
 
     try {
-      const response = await fetch('/InsWebApp/TMD0001Subscribe.pwkjson', {
+      const token = getAuthToken();
+      if (!token) {
+        handleAuthError(401);
+        return;
+      }
+
+      // 기존 API 구조에 맞춘 요청 데이터
+      const requestData = {
+        tenantModuleVo: {
+          moduleId: String(module.moduleId),
+          tenantId: tenantId
+        }
+      };
+
+      const subscribeUrl = `/api/modules/subscribe`;
+      console.log('구독 API 호출:', subscribeUrl, requestData);
+      
+      const subscribeResponse = await fetch(subscribeUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token
         },
-        body: JSON.stringify({
-          tenantModuleVo: {
-            moduleId: module.moduleId,
-            tenantId: tenantId
-          }
-        })
+        credentials: 'include',
+        body: JSON.stringify(requestData)
       });
 
-      if (response.ok) {
-        showPopup(`${module.name} 모듈이 구독되었습니다!`);
+      console.log('구독 API 응답 상태:', subscribeResponse.status);
+
+      if (subscribeResponse.ok) {
+        const result = await subscribeResponse.json();
+        console.log('구독 API 응답:', result);
         
-        // 상태 업데이트
-        setModules(prev => prev.map(m => 
-          m.moduleId === module.moduleId ? { ...m, subscribed: true } : m
-        ));
-        
-        updateSubscriptionStatus(module.moduleId, module.code, true);
+        if (result.success) {
+          showPopup(`${module.name} 모듈이 구독되었습니다!`);
+          
+          // 상태 업데이트
+          setModules(prev => prev.map(m => 
+            m.moduleId === module.moduleId ? { ...m, subscribed: true } : m
+          ));
+          
+          // 로컬 스토리지도 업데이트 (백업용)
+          updateSubscriptionStatus(module.moduleId, module.code, true);
+        } else {
+          showPopup(result.message || '구독 처리에 실패했습니다.');
+        }
+      } else if (subscribeResponse.status === 401 || subscribeResponse.status === 403) {
+        handleAuthError(subscribeResponse.status);
       } else {
-        const errorData = await response.json();
-        const errorMsg = errorData.elHeader?.resMsg || '구독에 실패했습니다.';
-        showPopup(`${module.name} 모듈 구독에 실패했습니다: ${errorMsg}`);
+        const errorText = await subscribeResponse.text();
+        console.error('구독 API 오류:', errorText);
+        throw new Error(`구독 API 오류: ${subscribeResponse.status}`);
       }
+
     } catch (error) {
       console.error('구독 오류:', error);
-      showPopup(`${module.name} 모듈 구독에 실패했습니다.`);
+      showPopup(`${module.name} 모듈 구독에 실패했습니다: ${error.message}`);
     }
   };
 
-  // 모듈 구독 해지
+  // 실제 모듈 구독 해지 API 호출 (기존 API에 맞춤)
   const unsubscribeModule = async (module) => {
     const tenantId = getTenantId();
     if (!tenantId) {
@@ -309,36 +543,63 @@ const ModuleMarketplace = () => {
     }
 
     try {
-      const response = await fetch('/InsWebApp/TMD0001Unsubscribe.pwkjson', {
+      const token = getAuthToken();
+      if (!token) {
+        handleAuthError(401);
+        return;
+      }
+
+      // 기존 API 구조에 맞춘 요청 데이터
+      const requestData = {
+        tenantModuleVo: {
+          moduleId: String(module.moduleId),
+          tenantId: tenantId
+        }
+      };
+
+      const unsubscribeUrl = `/api/modules/unsubscribe`;
+      console.log('구독 해지 API 호출:', unsubscribeUrl, requestData);
+      
+      const unsubscribeResponse = await fetch(unsubscribeUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token
         },
-        body: JSON.stringify({
-          tenantModuleVo: {
-            moduleId: module.moduleId,
-            tenantId: tenantId
-          }
-        })
+        credentials: 'include',
+        body: JSON.stringify(requestData)
       });
 
-      if (response.ok) {
-        showPopup(`${module.name} 모듈 구독이 해지되었습니다!`);
+      console.log('구독 해지 API 응답 상태:', unsubscribeResponse.status);
+
+      if (unsubscribeResponse.ok) {
+        const result = await unsubscribeResponse.json();
+        console.log('구독 해지 API 응답:', result);
         
-        // 상태 업데이트
-        setModules(prev => prev.map(m => 
-          m.moduleId === module.moduleId ? { ...m, subscribed: false } : m
-        ));
-        
-        updateSubscriptionStatus(module.moduleId, module.code, false);
+        if (result.success) {
+          showPopup(`${module.name} 모듈 구독이 해지되었습니다!`);
+          
+          // 상태 업데이트
+          setModules(prev => prev.map(m => 
+            m.moduleId === module.moduleId ? { ...m, subscribed: false } : m
+          ));
+          
+          // 로컬 스토리지도 업데이트 (백업용)
+          updateSubscriptionStatus(module.moduleId, module.code, false);
+        } else {
+          showPopup(result.message || '구독 해지 처리에 실패했습니다.');
+        }
+      } else if (unsubscribeResponse.status === 401 || unsubscribeResponse.status === 403) {
+        handleAuthError(unsubscribeResponse.status);
       } else {
-        const errorData = await response.json();
-        const errorMsg = errorData.elHeader?.resMsg || '구독 해지에 실패했습니다.';
-        showPopup(`${module.name} 모듈 구독 해지에 실패했습니다: ${errorMsg}`);
+        const errorText = await unsubscribeResponse.text();
+        console.error('구독 해지 API 오류:', errorText);
+        throw new Error(`구독 해지 API 오류: ${unsubscribeResponse.status}`);
       }
+
     } catch (error) {
       console.error('구독 해지 오류:', error);
-      showPopup(`${module.name} 모듈 구독 해지에 실패했습니다.`);
+      showPopup(`${module.name} 모듈 구독 해지에 실패했습니다: ${error.message}`);
     }
   };
 
@@ -363,10 +624,25 @@ const ModuleMarketplace = () => {
   // 검색 처리
   const handleSearch = () => {
     // 검색은 useEffect에서 자동으로 처리됨
+    console.log('검색 키워드:', searchKeyword);
   };
 
-  const paidModules = filteredModules.filter(m => m.price > 0);
+  // 개발용 토큰 테스트 함수 (개발 중에만 사용, 실제 배포 시 제거)
+  const testTokenInConsole = () => {
+    console.log('=== 토큰 디버깅 정보 ===');
+    console.log('현재 토큰:', getAuthToken());
+    console.log('localStorage 전체:', { ...localStorage });
+    console.log('sessionStorage 전체:', { ...sessionStorage });
+    console.log('현재 URL:', window.location.href);
+    console.log('tenant 파라미터:', getTenantId());
+  };
 
+  // 전역에서 접근 가능하도록 (개발용)
+  if (typeof window !== 'undefined') {
+    window.testTokenInConsole = testTokenInConsole;
+  }
+
+  const paidModules = filteredModules.filter(m => m.price > 0);
   const popularModules = filteredModules.slice(0, 4);
 
   return (
@@ -478,10 +754,10 @@ const ModuleMarketplace = () => {
                   {/* 모듈 정보 */}
                   <div style={{ flexGrow: 1 }}>
                     <div style={{ fontWeight: '600', fontSize: '16px', color: '#1f2937' }}>
-                      {module.name}
+                      {module.name || '모듈명 없음'}
                     </div>
                     <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
-                      {module.description || ''}
+                      {module.description || '설명 없음'}
                     </div>
                     <div style={{ fontSize: '16px', fontWeight: '600', color: '#374151', marginTop: '8px' }}>
                       {module.formattedPrice}
@@ -598,7 +874,7 @@ const ModuleMarketplace = () => {
                     {iconComponents[module.icon] || iconComponents['drowsy']}
                   </div>
                   <div style={{ color: '#000000', fontWeight: '600', fontSize: '14px' }}>
-                    {module.name}
+                    {module.name || '모듈명 없음'}
                   </div>
                 </div>
 

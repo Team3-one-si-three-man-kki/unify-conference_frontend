@@ -33,38 +33,31 @@ const TenantDashboardWithRouter = () => {
   // 탭 정보 
   const tabInfo = {
     users: { 
-      label: '사용자 관리', 
-      icon: '👤',
+      label: '사용자 관리',
       path: '/users',
     },
     modules: { 
-      label: '모듈 구매', 
-      icon: '📦',
+      label: '모듈 구매',
       path: '/modules',
     },
     login: { 
-      label: '로그인 페이지 관리', 
-      icon: '🔐',
+      label: '로그인 페이지 관리',
       path: '/login-custom',
     },
     meeting: { 
-      label: '미팅 생성', 
-      icon: '📹',
+      label: '미팅 생성',
       path: '/meeting',
     },
     previousMeeting: { 
-      label: '이전 미팅', 
-      icon: '🕒',
+      label: '이전 미팅',
       path: '/previous-meeting',
     },
     attendance: { 
-      label: '출석 관리', 
-      icon: '✅',
+      label: '출석 관리',
       path: '/attendance',
     },
     moduleManagement: { 
-      label: '모듈 관리', 
-      icon: '⭐',
+      label: '모듈 관리',
       path: '/module-management',
     }
   };
@@ -230,7 +223,7 @@ const TenantDashboardWithRouter = () => {
           </span>
         </h1>
         <button className="logout-button" onClick={handleLogout}>
-          ↪ 로그아웃
+          로그아웃
         </button>
       </header>
 
@@ -243,7 +236,6 @@ const TenantDashboardWithRouter = () => {
             onClick={() => handleTabClick(tabKey)}
             disabled={!allowedTabs.includes(tabKey)}
           >
-            <span className="tab-icon">{tabInfo[tabKey].icon}</span>
             <span className="tab-label">{tabInfo[tabKey].label}</span>
           </button>
         ))}

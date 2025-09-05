@@ -318,3 +318,81 @@
     box-shadow: 0 0 30px rgba(66, 133, 244, 0.5);
   }
 }
+
+/* 드롭 모달 스타일 */
+.drop-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.drop-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  transform: scale(0.9);
+  animation: modalFadeIn 0.2s ease-out forwards;
+}
+
+@keyframes modalFadeIn {
+  to {
+    transform: scale(1);
+  }
+}
+
+.drop-modal-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.drop-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 12px 0;
+}
+
+.drop-modal-message {
+  font-size: 14px;
+  color: #6c757d;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.drop-modal-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.drop-modal-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.drop-modal-btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.drop-modal-btn-primary:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}

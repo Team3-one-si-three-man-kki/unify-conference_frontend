@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './SessionInfoStep.css';
 
 export const SessionInfoStep = ({ onNext, initialData }) => {
   const [formData, setFormData] = useState({
-    name: initialData?.name || '',
+    name: initialData?.name || 'OOO의 미팅룸',
     department: initialData?.department || '',
     startTime: initialData?.startTime || '',
     endTime: initialData?.endTime || ''
@@ -15,6 +15,82 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
   const [selectedMinute, setSelectedMinute] = useState(initialData?.startTime ? new Date(initialData.startTime).getMinutes() : '');
 
   const [errors, setErrors] = useState({});
+  
+  // 순차적 애니메이션을 위한 상태
+  const [currentAnimationStep, setCurrentAnimationStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState([]);
+  const [sessionNameTouched, setSessionNameTouched] = useState(false);
+  const [startTimeInteracted, setStartTimeInteracted] = useState(false);
+  const [showDurationAnimation, setShowDurationAnimation] = useState(false);
+
+  // 애니메이션 시퀀스 관리
+  useEffect(() => {
+    // 컴포넌트 마운트 시 설명과 시작시간 동시 애니메이션 시작
+    setCurrentAnimationStep(1.5); // 설명과 시작시간 동시 애니메이션
+  }, []);
+
+  // 세션명 변경 감지 (설명 애니메이션 끄기용)
+  useEffect(() => {
+    if ((formData.name !== 'OOO의 미팅룸' || sessionNameTouched) && !completedSteps.includes(1)) {
+      setCompletedSteps(prev => [...prev, 1]);
+    }
+  }, [formData.name, sessionNameTouched, completedSteps]);
+
+  useEffect(() => {
+    // 2단계: 시작 시간 입력 체크
+    if (formData.startTime && !completedSteps.includes(2)) {
+      setCompletedSteps(prev => [...prev, 2]);
+      // 시작시간 입력 완료 시 duration 버튼 애니메이션 시작
+      setTimeout(() => {
+        setShowDurationAnimation(true);
+      }, 500);
+      setTimeout(() => setCurrentAnimationStep(3), 500);
+    }
+  }, [formData.startTime, completedSteps]);
+
+  // 시작시간 상호작용 감지 (클릭이나 포커스 시)
+  const handleStartTimeInteraction = () => {
+    if (!startTimeInteracted) {
+      setStartTimeInteracted(true);
+      // 설명 애니메이션만 완료 처리 (시작시간 애니메이션은 계속)
+      setCompletedSteps(prev => {
+        if (!prev.includes(1)) {
+          return [...prev, 1];
+        }
+        return prev;
+      });
+      setCurrentAnimationStep(2); // 시작시간만 애니메이션
+    }
+  };
+
+  useEffect(() => {
+    // 3단계: 종료 시간 설정 체크
+    if (formData.startTime && formData.endTime && !completedSteps.includes(3)) {
+      setCompletedSteps(prev => [...prev, 3]);
+      setTimeout(() => setCurrentAnimationStep(4), 500);
+    }
+  }, [formData.startTime, formData.endTime, completedSteps]);
+
+  // 애니메이션 클래스 결정 함수
+  const getAnimationClass = (stepNumber) => {
+    if (completedSteps.includes(stepNumber)) {
+      return 'completed-step';
+    } else if (currentAnimationStep === stepNumber) {
+      return stepNumber === 1 ? 'animate-hint' : 'animate-step';
+    } else if (currentAnimationStep === 1.5 && (stepNumber === 1 || stepNumber === 2)) {
+      // 설명과 시작시간 동시 애니메이션
+      return stepNumber === 1 ? 'animate-hint' : 'animate-step';
+    }
+    return '';
+  };
+
+  // 다음 버튼 애니메이션 클래스 결정
+  const getNextButtonClass = () => {
+    if (formData.startTime && formData.endTime && currentAnimationStep === 4) {
+      return 'ready-to-animate';
+    }
+    return '';
+  };
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -242,6 +318,9 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
   const addDuration = (minutesToAdd) => {
     if (!selectedDate || selectedHour === '' || selectedMinute === '') return;
     
+    // duration 버튼 클릭 시 애니메이션 끄기
+    setShowDurationAnimation(false);
+    
     const start = new Date(selectedDate);
     start.setHours(parseInt(selectedHour), parseInt(selectedMinute), 0, 0);
     
@@ -268,10 +347,21 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
     const formattedEnd = formatDateTimeLocal(end);
     console.log('Setting endTime to:', formattedEnd);
     handleInputChange('endTime', formattedEnd);
+    
+    // 종료시간이 설정되면 3단계 완료 처리
+    if (!completedSteps.includes(3)) {
+      setTimeout(() => {
+        setCompletedSteps(prev => [...prev, 3]);
+        setCurrentAnimationStep(4); // 다음 버튼 애니메이션
+      }, 100);
+    }
   };
 
   const resetDuration = () => {
     handleInputChange('endTime', '');
+    // 초기화 시 3단계 완료 상태 제거
+    setCompletedSteps(prev => prev.filter(step => step !== 3));
+    setCurrentAnimationStep(3); // 종료시간 입력 단계로 돌아가기
   };
 
   return (
@@ -283,16 +373,18 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="session-form">
-          <div className="form-group">
+          <div className={`form-group ${getAnimationClass(1)}`}>
             <label className="form-label">
               세션 이름
             </label>
             <input
               type="text"
-              className={`form-input ${errors.name ? 'error' : ''}`}
+              className={`form-input ${errors.name ? 'error' : ''} ${completedSteps.includes(1) ? 'completed-input' : ''}`}
               placeholder="세션 이름을 입력해주세요"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
+              onFocus={(e) => e.target.select()}
+              onBlur={() => setSessionNameTouched(true)}
               maxLength={100}
             />
             <p className="form-hint">
@@ -302,7 +394,7 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
           </div>
 
 
-          <div className="form-group">
+          <div className={`form-group ${getAnimationClass(2)}`}>
             <label className="form-label required">
               시작 시간
             </label>
@@ -315,6 +407,8 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
                     value={selectedDate}
                     min={getTodayDate()}
                     onChange={(e) => handleDateChange(e.target.value)}
+                    onFocus={handleStartTimeInteraction}
+                    onClick={handleStartTimeInteraction}
                     placeholder="날짜"
                   />
                 </div>
@@ -323,6 +417,8 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
                     className={`datetime-input hour-part ${errors.startTime ? 'error' : ''}`}
                     value={selectedHour}
                     onChange={(e) => handleHourChange(e.target.value)}
+                    onFocus={handleStartTimeInteraction}
+                    onClick={handleStartTimeInteraction}
                     disabled={!selectedDate}
                   >
                     <option value="">시</option>
@@ -337,6 +433,8 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
                     className={`datetime-input minute-part ${errors.startTime ? 'error' : ''}`}
                     value={selectedMinute}
                     onChange={(e) => handleMinuteChange(e.target.value)}
+                    onFocus={handleStartTimeInteraction}
+                    onClick={handleStartTimeInteraction}
                     disabled={!selectedDate || selectedHour === ''}
                   >
                     <option value="">분</option>
@@ -354,31 +452,34 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
 
           {formData.startTime && (
             <div className="duration-control">
+              <p className={`duration-guide ${showDurationAnimation ? 'animate-duration-guide' : ''}`}>
+                미팅을 진행할 시간을 선택하세요. + 시간은 누적됩니다.
+              </p>
               <div className="duration-preset-buttons">
                 <button
                   type="button"
-                  className="duration-preset-btn"
+                  className={`duration-preset-btn ${showDurationAnimation ? 'animate-duration' : ''}`}
                   onClick={() => addDuration(30)}
                 >
                   +30분
                 </button>
                 <button
                   type="button"
-                  className="duration-preset-btn"
+                  className={`duration-preset-btn ${showDurationAnimation ? 'animate-duration' : ''}`}
                   onClick={() => addDuration(60)}
                 >
                   +1시간
                 </button>
                 <button
                   type="button"
-                  className="duration-preset-btn"
+                  className={`duration-preset-btn ${showDurationAnimation ? 'animate-duration' : ''}`}
                   onClick={() => addDuration(120)}
                 >
                   +2시간
                 </button>
                 <button
                   type="button"
-                  className="duration-preset-btn"
+                  className={`duration-preset-btn ${showDurationAnimation ? 'animate-duration' : ''}`}
                   onClick={() => addDuration(180)}
                 >
                   +3시간
@@ -399,7 +500,7 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
             </div>
           )}
 
-          <div className="form-group">
+          <div className={`form-group ${getAnimationClass(3)}`}>
             <label className="form-label required">
               종료 시간
             </label>
@@ -425,12 +526,14 @@ export const SessionInfoStep = ({ onNext, initialData }) => {
             {errors.endTime && <span className="error-message">{errors.endTime}</span>}
           </div>
 
-          <div className="form-actions">
-            <button type="submit" className="next-button">
-              다음 단계
-              <span className="button-icon">▶</span>
-            </button>
-          </div>
+          {formData.startTime && formData.endTime && (
+            <div className="form-actions">
+              <button type="submit" className={`next-button ${getNextButtonClass()}`}>
+                다음 단계
+                <span className="button-icon">▶</span>
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

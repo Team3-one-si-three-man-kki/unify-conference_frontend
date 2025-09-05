@@ -248,21 +248,110 @@
 .next-button {
   background: linear-gradient(135deg, #4285f4 0%, #1976d2 100%);
   color: white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+}
+
+.next-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s;
+}
+
+.next-button:hover::before {
+  left: 100%;
 }
 
 .next-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 25px rgba(66, 133, 244, 0.3);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 12px 35px rgba(66, 133, 244, 0.5);
   background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  animation: none;
+}
+
+.next-button:active {
+  transform: translateY(0) scale(0.98);
+  animation: buttonBounce 0.6s ease;
 }
 
 .button-icon {
   font-size: 14px;
-  transition: transform 0.2s ease;
+  transition: transform 0.3s ease;
 }
 
 .next-button:hover .button-icon {
-  transform: translateX(2px);
+  transform: translateX(4px) rotate(10deg);
+}
+
+@keyframes buttonPulse {
+  0% {
+    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+  }
+  50% {
+    box-shadow: 0 6px 25px rgba(66, 133, 244, 0.7);
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+  }
+}
+
+@keyframes buttonBounce {
+  0%, 20%, 40%, 60%, 80%, 100% {
+    transform: translateY(0);
+  }
+  10% {
+    transform: translateY(-3px);
+  }
+  30% {
+    transform: translateY(-2px);
+  }
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+/* 순차적 애니메이션을 위한 클래스들 */
+.info-note.animate-hint {
+  animation: hintGlow 2s ease-in-out infinite !important;
+  background: linear-gradient(135deg, rgba(66, 133, 244, 0.15) 0%, rgba(25, 118, 210, 0.15) 100%) !important;
+  padding: 6px 10px !important;
+  border-radius: 4px !important;
+  margin: 4px 0 0 0 !important;
+}
+
+.info-note.completed-step {
+  animation: none;
+  background: none;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* 다음 버튼 애니메이션 */
+.next-button.ready-to-animate {
+  animation: buttonPulse 2s infinite;
+}
+
+@keyframes hintGlow {
+  0% {
+    background: linear-gradient(135deg, rgba(66, 133, 244, 0.15) 0%, rgba(25, 118, 210, 0.15) 100%);
+    box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15);
+  }
+  50% {
+    background: linear-gradient(135deg, rgba(66, 133, 244, 0.25) 0%, rgba(25, 118, 210, 0.25) 100%);
+    box-shadow: 0 4px 16px rgba(66, 133, 244, 0.3);
+    transform: scale(1.02);
+  }
+  100% {
+    background: linear-gradient(135deg, rgba(66, 133, 244, 0.15) 0%, rgba(25, 118, 210, 0.15) 100%);
+    box-shadow: 0 2px 8px rgba(66, 133, 244, 0.15);
+  }
 }
 
 .prev-button:hover .button-icon {

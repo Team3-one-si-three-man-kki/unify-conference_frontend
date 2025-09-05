@@ -27,6 +27,16 @@
   line-height: 1.5;
 }
 
+.error-message {
+  background: #fee2e2;
+  color: #dc2626;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-top: 8px;
+  font-weight: 500;
+}
+
 .session-manager-content {
   flex: 1;
   display: flex;
@@ -212,6 +222,58 @@
   font-size: 12px;
   color: #64748b;
   font-weight: 500;
+}
+
+.session-id {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.loading-indicator {
+  font-size: 12px;
+  color: #4285f4;
+  font-weight: 500;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading-modules {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px;
+}
+
+.loading-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-modules h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2d3748;
+  margin: 0 0 8px 0;
+}
+
+.loading-modules p {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0;
 }
 
 .session-time {

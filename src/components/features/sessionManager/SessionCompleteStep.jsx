@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import './SessionCompleteStep.css';
+import { SessionModal } from '../../ui/Modal/SessionModal';
+import apiClient from '../../../services/api/api';
 
 export const SessionCompleteStep = ({ onPrev, sessionData }) => {
   const [isCreating, setIsCreating] = useState(false);
@@ -8,6 +10,45 @@ export const SessionCompleteStep = ({ onPrev, sessionData }) => {
   const [actualInviteLink, setActualInviteLink] = useState('');
   const [isLinkCopied, setIsLinkCopied] = useState(false);
   const [isSessionStarted, setIsSessionStarted] = useState(false);
+  const [modal, setModal] = useState({ isOpen: false, title: '', message: '', type: 'info' });
+
+  // 순차적 애니메이션을 위한 상태
+  const [currentAnimationStep, setCurrentAnimationStep] = useState(1);
+  const [completedSteps, setCompletedSteps] = useState([]);
+
+
+
+  // 애니메이션 시퀀스 관리
+  useEffect(() => {
+    // 컴포넌트 마운트 시 생성 버튼 애니메이션 시작
+    setCurrentAnimationStep(1);
+  }, []);
+
+  // 세션 생성 완료 후 복사 버튼 애니메이션
+  useEffect(() => {
+    if (isCreated && actualInviteLink) {
+      setCompletedSteps(prev => [...prev, 1]);
+      setCurrentAnimationStep(2);
+    }
+  }, [isCreated, actualInviteLink]);
+
+  // 링크 복사 완료 후 시작 버튼 애니메이션
+  useEffect(() => {
+    if (isLinkCopied) {
+      setCompletedSteps(prev => [...prev, 2]);
+      setCurrentAnimationStep(3);
+    }
+  }, [isLinkCopied]);
+
+  // 애니메이션 클래스 결정 함수
+  const getAnimationClass = (stepNumber, elementType = 'default') => {
+    if (completedSteps.includes(stepNumber)) {
+      return elementType === 'section' ? 'completed-step' : 'step-completed';
+    } else if (currentAnimationStep === stepNumber) {
+      return 'animate-step';
+    }
+    return '';
+  };
 
   // 디버깅을 위해 sessionData 로그 출력
   console.log('SessionCompleteStep received sessionData:', sessionData);
@@ -49,23 +90,57 @@ export const SessionCompleteStep = ({ onPrev, sessionData }) => {
     setIsCreating(true);
     
     try {
-      // 실제 API 호출 시뮬레이션 (2초 지연)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // 백엔드 API 호출
+      console.log('세션 생성 요청 데이터:', sessionData);
       
-      // 임시 세션 ID 생성
-      const newSessionId = 'session-' + Date.now();
-      const inviteLink = `https://modulink.com/join/${newSessionId}`;
+      // layoutConfig에서 색상 정보만 추출
+      const colorsOnly = sessionData?.layoutConfig?.colors || {};
       
-      setSessionId(newSessionId);
-      setActualInviteLink(inviteLink);
-      setIsCreated(true);
+      const requestData = {
+        name: sessionData?.sessionInfo?.name || 'Untitled Session',
+        department: sessionData?.sessionInfo?.department,
+        startTime: sessionData?.sessionInfo?.startTime,
+        endTime: sessionData?.sessionInfo?.endTime,
+        maxParticipants: sessionData?.inviteInfo?.maxParticipants || 4,
+        layoutConfig: { colors: colorsOnly },
+        inviteEmails: sessionData?.inviteInfo?.emails || []
+      };
       
-      // 성공 알림
-      alert('🎉 세션이 성공적으로 생성되었습니다!');
+      console.log('API 요청 데이터:', requestData);
+      console.log('=== API 요청 상세 ===');
+      console.log('layoutConfig:', JSON.stringify(requestData.layoutConfig, null, 2));
+      console.log('modules:', requestData.layoutConfig.modules);
+      
+      const response = await apiClient.post('/api/user/session', requestData);
+      const result = response.data;
+      
+      console.log('API 응답:', result);
+      
+      if (result.success) {
+        setSessionId(result.sessionId);
+        setActualInviteLink(result.inviteLink);
+        setIsCreated(true);
+        
+        // 성공 알림
+        setModal({
+          isOpen: true,
+          title: '세션 생성 성공',
+          message: '세션이 성공적으로 생성되었습니다!',
+          type: 'success'
+        });
+      } else {
+        throw new Error(result.message || '세션 생성에 실패했습니다.');
+      }
       
     } catch (error) {
       console.error('세션 생성 실패:', error);
-      alert('세션 생성 중 오류가 발생했습니다. 다시 시도해주세요.');
+      const errorMessage = error.response?.data?.message || error.message || '세션 생성 중 오류가 발생했습니다.';
+      setModal({
+        isOpen: true,
+        title: '세션 생성 실패',
+        message: errorMessage,
+        type: 'error'
+      });
     } finally {
       setIsCreating(false);
     }
@@ -75,7 +150,12 @@ export const SessionCompleteStep = ({ onPrev, sessionData }) => {
     try {
       await navigator.clipboard.writeText(actualInviteLink);
       setIsLinkCopied(true);
-      alert('초대 링크가 클립보드에 복사되었습니다!');
+      setModal({
+        isOpen: true,
+        title: '링크 복사 완료',
+        message: '초대 링크가 클립보드에 복사되었습니다!',
+        type: 'success'
+      });
     } catch (err) {
       const textArea = document.createElement('textarea');
       textArea.value = actualInviteLink;
@@ -84,7 +164,12 @@ export const SessionCompleteStep = ({ onPrev, sessionData }) => {
       document.execCommand('copy');
       document.body.removeChild(textArea);
       setIsLinkCopied(true);
-      alert('초대 링크가 클립보드에 복사되었습니다!');
+      setModal({
+        isOpen: true,
+        title: '링크 복사 완료',
+        message: '초대 링크가 클립보드에 복사되었습니다!',
+        type: 'success'
+      });
     }
   };
 
@@ -162,14 +247,17 @@ export const SessionCompleteStep = ({ onPrev, sessionData }) => {
 
           {/* 초대 링크 (생성 후에만 표시) */}
           {isCreated && actualInviteLink && (
-            <div className="invite-section">
-              <h3 className="section-title">🔗 초대 링크</h3>
+            <div className={`invite-section ${getAnimationClass(2, 'section')}`}>
+              <h3 className="section-title">
+                🔗 초대 링크 
+                <span className="section-subtitle">(미팅 종료시간에서 1시간 후 만료)</span>
+              </h3>
               <div className="invite-link-container">
                 <div className="invite-link-display">
                   {actualInviteLink}
                 </div>
                 <button 
-                  className="copy-link-button"
+                  className={`copy-link-button ${getAnimationClass(2)}`}
                   onClick={handleCopyInviteLink}
                 >
                   📋 복사
@@ -219,13 +307,12 @@ export const SessionCompleteStep = ({ onPrev, sessionData }) => {
               
               <button 
                 type="button" 
-                className="create-button"
+                className={`create-button ${getAnimationClass(1)}`}
                 onClick={handleCreateSession}
                 disabled={isCreating}
               >
                 {isCreating ? (
                   <>
-                    <span className="loading-spinner"></span>
                     생성 중...
                   </>
                 ) : (
@@ -247,7 +334,7 @@ export const SessionCompleteStep = ({ onPrev, sessionData }) => {
               
               <button 
                 type="button" 
-                className="start-button"
+                className={`start-button ${getAnimationClass(3)}`}
                 onClick={handleStartSession}
               >
                 🎯 세션 시작하기
@@ -256,6 +343,14 @@ export const SessionCompleteStep = ({ onPrev, sessionData }) => {
           )}
         </div>
       </div>
+      
+      <SessionModal 
+        isOpen={modal.isOpen}
+        onClose={() => setModal({ ...modal, isOpen: false })}
+        title={modal.title}
+        message={modal.message}
+        type={modal.type}
+      />
     </div>
   );
 };

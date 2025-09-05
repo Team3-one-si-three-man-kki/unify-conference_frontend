@@ -15,7 +15,7 @@ import AttendanceModule from "./pages/AttendanceModule/AttendanceModule";
 import SignUpPage from "./pages/SignUp/SignUpPage"
 import LoginPage from "./pages/Login/LoginPage"
 import { SessionCreator } from "./pages/session/SessionCreator";
-import { SessionManager } from "./components/features/session/SessionManager";
+import { SessionManager } from "./components/features/sessionManager/SessionManager";
 import ModuleManagement from "./pages/ModuleManagement/ModuleManagement";
 
 import AdminDevLogin from "./pages/Admin/Admin_dev_login";

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDroppable, useDraggable } from '@dnd-kit/core';
+import ColorPicker from './ColorPicker';
 import './DropZone.css';
 
 // 드롭존 정의를 컴포넌트 내부로 이동
@@ -163,7 +164,7 @@ const DropZoneArea = ({ zone, placedModules = [], onRemoveModule, readOnly = fal
   );
 };
 
-export const DropZone = ({ placedModules, onRemoveModule, onClearAll, onSaveLayout, onPrev, totalModulesCount, showNavigation = false, sessionInfo, readOnly = false, showInitialAnimation = false, userHasInteracted = false, insertIndex = -1, dragOverZoneId = null, isDragging = false }) => {
+export const DropZone = ({ placedModules, onRemoveModule, onClearAll, onSaveLayout, onPrev, totalModulesCount, showNavigation = false, sessionInfo, readOnly = false, showInitialAnimation = false, userHasInteracted = false, insertIndex = -1, dragOverZoneId = null, isDragging = false, sessionColors = { primary: '#4285f4', secondary: '#34A853' }, onColorsChange }) => {
   // 다음 단계 버튼 애니메이션 여부 결정
   const shouldShowNextButtonAnimation = userHasInteracted && totalModulesCount > 0;
 
@@ -204,35 +205,47 @@ export const DropZone = ({ placedModules, onRemoveModule, onClearAll, onSaveLayo
       )}
       
       <div className="drop-zones-layout">
-        <div className="main-content">
-          {dropZones.filter(zone => zone.id === 'main_video').map(zone => (
-            <DropZoneArea 
-              key={zone.id} 
-              zone={zone} 
-              placedModules={placedModules[zone.id] || []}
-              onRemoveModule={onRemoveModule}
-              readOnly={readOnly}
-              isDragging={isDragging}
-              dragOverZoneId={dragOverZoneId}
-              insertIndex={insertIndex}
-            />
-          ))}
-        </div>
-        
-        
-        <div className="bottom-content">
-          {dropZones.filter(zone => zone.gridArea === 'bottom').map(zone => (
-            <DropZoneArea 
-              key={zone.id} 
-              zone={zone} 
-              placedModules={placedModules[zone.id] || []}
-              onRemoveModule={onRemoveModule}
-              readOnly={readOnly}
-              isDragging={isDragging}
-              dragOverZoneId={dragOverZoneId}
-              insertIndex={insertIndex}
-            />
-          ))}
+        <div className="layout-content-area">
+          <div className="drop-zones-main">
+            <div className="main-content">
+              {dropZones.filter(zone => zone.id === 'main_video').map(zone => (
+                <DropZoneArea 
+                  key={zone.id} 
+                  zone={zone} 
+                  placedModules={placedModules[zone.id] || []}
+                  onRemoveModule={onRemoveModule}
+                  readOnly={readOnly}
+                  isDragging={isDragging}
+                  dragOverZoneId={dragOverZoneId}
+                  insertIndex={insertIndex}
+                />
+              ))}
+            </div>
+            
+            <div className="bottom-content">
+              {dropZones.filter(zone => zone.gridArea === 'bottom').map(zone => (
+                <DropZoneArea 
+                  key={zone.id} 
+                  zone={zone} 
+                  placedModules={placedModules[zone.id] || []}
+                  onRemoveModule={onRemoveModule}
+                  readOnly={readOnly}
+                  isDragging={isDragging}
+                  dragOverZoneId={dragOverZoneId}
+                  insertIndex={insertIndex}
+                />
+              ))}
+            </div>
+          </div>
+          
+          {!readOnly && onColorsChange && (
+            <div className="color-picker-sidebar">
+              <ColorPicker 
+                onColorsChange={onColorsChange}
+                initialColors={sessionColors}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

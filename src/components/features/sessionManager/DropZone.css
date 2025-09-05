@@ -97,16 +97,41 @@
 }
 
 .drop-zones-layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 60% auto;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   width: 100%;
   box-sizing: border-box;
-  grid-template-areas:
-    "main"
-    "bottom";
+}
+
+.layout-content-area {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+  flex: 1;
+}
+
+.drop-zones-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 10px;
+}
+
+.main-content {
+  flex: 2;
+  min-height: 60%;
+}
+
+.bottom-content {
+  flex: 1;
+  min-height: 30%;
+}
+
+.color-picker-sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  height: 100%;
 }
 
 .main-content {
@@ -611,12 +636,14 @@
 
 /* 반응형 레이아웃 */
 @media (max-width: 1024px) {
-  .drop-zones-layout {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "main"
-      "sidebar"
-      "bottom";
+  .layout-content-area {
+    flex-direction: column;
+  }
+
+  .color-picker-sidebar {
+    width: 100%;
+    height: auto;
+    margin-top: 10px;
   }
   
   .sidebar-content {

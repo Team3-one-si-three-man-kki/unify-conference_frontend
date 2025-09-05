@@ -38,13 +38,6 @@ const ModuleCard = ({ module, isPlaced }) => {
       <div className="module-info">
         <h4 className="module-name">{module.name}</h4>
         <p className="module-description">{module.description}</p>
-        <div className="module-meta">
-          <span className={`module-badge ${module.category}`}>
-            {module.category === 'basic' ? '기본' : 
-             module.category === 'premium' ? '프리미엄' : 'AI'}
-          </span>
-          {!module.isFree && <span className="module-price">유료</span>}
-        </div>
       </div>
     </div>
   );
@@ -55,6 +48,7 @@ export const ModuleList = ({ totalPlacedModules = 0, placedModules = {}, onModul
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
 
   // 백엔드에서 테넌트 모듈 데이터 가져오기
   useEffect(() => {
@@ -70,10 +64,10 @@ export const ModuleList = ({ totalPlacedModules = 0, placedModules = {}, onModul
         
         // 백엔드 데이터를 프론트엔드 모듈 형식으로 변환
         const convertedModules = tenantModules.map(module => ({
-          id: module.code || module.moduleId.toString(),
+          id: module.code,
           name: module.name,
           description: module.description,
-          icon: module.icon || '📦',
+          icon: module.icon || '📦', // DB에서 불러온 아이콘 사용
           category: 'basic', // 기본값으로 설정, 필요시 백엔드에서 카테고리 필드 추가
           isFree: true, // 기본값으로 설정
           color: '#4285f4', // 기본 색상
@@ -121,11 +115,11 @@ export const ModuleList = ({ totalPlacedModules = 0, placedModules = {}, onModul
       return acc;
     }, {});
 
-  const categoryNames = {
-    basic: '기본 모듈',
-    premium: '프리미엄 모듈', 
-    ai: 'AI 모듈'
-  };
+  // const categoryNames = {
+  //   basic: '기본 모듈',
+  //   premium: '프리미엄 모듈', 
+  //   ai: 'AI 모듈'
+  // };
 
   if (loading) {
     return (
@@ -182,7 +176,6 @@ export const ModuleList = ({ totalPlacedModules = 0, placedModules = {}, onModul
         ) : (
           Object.entries(modulesByCategory).map(([category, modules]) => (
             <div key={category} className="module-category">
-              <h4 className="category-title">{categoryNames[category]}</h4>
               <div className="category-modules">
                 {modules.map(module => (
                   <ModuleCard 

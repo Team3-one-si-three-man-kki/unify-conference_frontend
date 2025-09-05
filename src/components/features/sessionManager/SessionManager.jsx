@@ -1,141 +1,174 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SessionDesigner } from '../../../pages/session/SessionDesigner';
+import apiClient from '../../../services/api/api';
 import './SessionManager.css';
 
 export const SessionManager = () => {
   const [selectedSession, setSelectedSession] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [sessionModules, setSessionModules] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [tenantModules, setTenantModules] = useState([]);
   const navigate = useNavigate();
-  
-  // 임시 세션 데이터
-  const [sessions] = useState([
+
+  // 컴포넌트 마운트 시 세션 리스트 및 테넌트 모듈 로드
+  useEffect(() => {
+    loadSessions();
+    loadTenantModules();
+  }, []);
+
+  // 테넌트 모듈 데이터 로드
+  const loadTenantModules = async () => {
+    try {
+      const response = await apiClient.get('/api/user/tenant_module');
+      setTenantModules(response.data);
+    } catch (error) {
+      console.error('테넌트 모듈 로드 실패:', error);
+    }
+  };
+
+  const loadSessions = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const response = await apiClient.get('/api/user/session/list');
+      setSessions(response.data);
+    } catch (error) {
+      console.error('세션 리스트 로드 실패:', error);
+      setError('세션 리스트를 불러오는데 실패했습니다.');
+      // 에러 시 기본 Mock 데이터 사용
+      setSessions(mockSessions);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Mock 데이터 (API 실패 시 fallback)
+  const mockSessions = [
     {
-      id: 1,
+      sessionId: 1,
       name: '팀 회의 세션',
-      department: '개발팀',
       startTime: '2025-01-15T10:00',
       endTime: '2025-01-15T11:00',
-      maxParticipants: 8,
-      status: 'completed',
-      createdAt: '2025-01-14T15:30',
-      layoutConfig: {
-        modules: {
-          main_video: [{
-            id: 'video-call',
-            name: '화상통화',
-            description: '기본 화상통화 기능',
-            icon: '📹',
-            isFixed: true
-          }],
-          bottom_1: [{
-            id: 'chat',
-            name: '채팅',
-            description: '실시간 채팅 기능',
-            icon: '💬'
-          }],
-          bottom_2: [{
-            id: 'screen-share',
-            name: '화면공유',
-            description: '화면 공유 기능',
-            icon: '🖥️'
-          }]
-        }
-      }
+      maxParticipant: 8,
+      createdBy: 1,
+      tenantId: 1
     },
     {
-      id: 2,
+      sessionId: 2,
       name: '고객사 프레젠테이션',
-      department: '영업팀',
       startTime: '2025-01-16T14:00',
       endTime: '2025-01-16T15:30',
-      maxParticipants: 12,
-      status: 'scheduled',
-      createdAt: '2025-01-15T09:15',
-      layoutConfig: {
-        modules: {
-          main_video: [{
-            id: 'video-call',
-            name: '화상통화',
-            description: '기본 화상통화 기능',
-            icon: '📹',
-            isFixed: true
-          }],
-          bottom_1: [{
-            id: 'screen-share',
-            name: '화면공유',
-            description: '화면 공유 기능',
-            icon: '🖥️'
-          }],
-          bottom_2: [{
-            id: 'canvas',
-            name: '캔버스',
-            description: '화이트보드 기능',
-            icon: '🎨'
-          }],
-          bottom_3: [{
-            id: 'file-share',
-            name: '파일공유',
-            description: '파일 업로드/다운로드',
-            icon: '📎'
-          }]
-        }
-      }
+      maxParticipant: 12,
+      createdBy: 1,
+      tenantId: 1
     },
     {
-      id: 3,
+      sessionId: 3,
       name: '월간 전체 회의',
-      department: '전체',
       startTime: '2025-01-20T09:00',
       endTime: '2025-01-20T10:30',
-      maxParticipants: 25,
-      status: 'scheduled',
-      createdAt: '2025-01-10T16:45',
-      layoutConfig: {
-        modules: {
-          main_video: [{
-            id: 'video-call',
-            name: '화상통화',
-            description: '기본 화상통화 기능',
-            icon: '📹',
-            isFixed: true
-          }],
-          bottom_1: [{
-            id: 'chat',
-            name: '채팅',
-            description: '실시간 채팅 기능',
-            icon: '💬'
-          }],
-          bottom_2: [{
-            id: 'attendance',
-            name: '출석체크',
-            description: '자동 출석 체크 기능',
-            icon: '✅'
-          }],
-          bottom_3: [{
-            id: 'drowsiness-ai',
-            name: '졸음감지 AI',
-            description: 'AI 기반 집중도 모니터링',
-            icon: '😴'
-          }]
-        }
-      }
+      maxParticipant: 25,
+      createdBy: 1,
+      tenantId: 1
     }
-  ]);
+  ];
 
-  const handleSessionSelect = (session) => {
+  const handleSessionSelect = async (session) => {
     setSelectedSession(session);
+    
+    // 이미 불러온 모듈이 있다면 다시 불러오지 않음
+    if (sessionModules[session.sessionId]) {
+      return;
+    }
+
+    // 세션 모듈 불러오기
+    try {
+      const response = await apiClient.get(`/api/user/session-module/session/${session.sessionId}`);
+      setSessionModules(prev => ({
+        ...prev,
+        [session.sessionId]: response.data
+      }));
+    } catch (error) {
+      console.error('세션 모듈 로드 실패:', error);
+      // 모듈 로드 실패 시에도 세션은 선택된 상태로 유지
+    }
   };
 
   const handleCreateWithLayout = () => {
-    if (selectedSession) {
-      // 선택된 세션의 레이아웃 구성을 세션 생성 페이지로 전달
+    if (selectedSession && sessionModules[selectedSession.sessionId]) {
+      // 선택된 세션의 모듈 배치를 세션 생성 페이지로 전달
+      const modules = sessionModules[selectedSession.sessionId];
+      const layoutConfig = convertModulesToLayoutConfig(modules);
+      
       navigate('/meeting', {
         state: {
-          templateLayout: selectedSession.layoutConfig,
+          templateLayout: layoutConfig,
           templateName: `${selectedSession.name} (복사본)`
         }
       });
     }
+  };
+
+  // 현재 테넌트 모듈에서 최신 아이콘 정보를 가져오는 함수
+  const getCurrentModuleIcon = (moduleCode) => {
+    if (tenantModules.length === 0) {
+      return getModuleIcon(moduleCode); // fallback
+    }
+    
+    const currentModule = tenantModules.find(m => m.code === moduleCode);
+    return currentModule?.icon || getModuleIcon(moduleCode);
+  };
+
+  // 백엔드 모듈 데이터를 프론트엔드 레이아웃 구성으로 변환
+  const convertModulesToLayoutConfig = (modules) => {
+    const layoutConfig = { 
+      modules: {
+        // 메인 영역에 화상회의 모듈 고정
+        main_video: [{
+          id: 'video-call',
+          name: '화상통화',
+          icon: '📹',
+          isFixed: true
+        }],
+        // 모든 모듈을 바 형태 영역에 순서대로 배치
+        bottom_modules: modules.map(module => ({
+          id: module.moduleCode,
+          name: module.moduleName || getModuleName(module.moduleCode),
+          icon: getCurrentModuleIcon(module.moduleCode), // 현재 테넌트 모듈의 최신 아이콘 사용
+          isFixed: false
+        }))
+      }
+    };
+    
+    return layoutConfig;
+  };
+
+  // 모듈 코드에 따른 이름 매핑
+  const getModuleName = (moduleCode) => {
+    const nameMap = {
+      'CHAT': '채팅',
+      'CANVAS': '캔버스', 
+      'QUIZ': '퀴즈',
+      'FACEAI': '집중도체크AI',
+      'SCREEN': '화면공유'
+    };
+    return nameMap[moduleCode] || '알 수 없는 모듈';
+  };
+
+
+  // 모듈 코드에 따른 아이콘 매핑
+  const getModuleIcon = (moduleCode) => {
+    const iconMap = {
+      'CHAT': '💬',
+      'CANVAS': '🎨', 
+      'QUIZ': '📝',
+      'FACEAI': '🤖',
+      'SCREEN': '🖥️'
+    };
+    return iconMap[moduleCode] || '📦';
   };
 
   const formatDateTime = (dateTimeStr) => {
@@ -148,16 +181,21 @@ export const SessionManager = () => {
     });
   };
 
-  const getStatusBadge = (status) => {
-    switch (status) {
-      case 'completed':
-        return { text: '완료', className: 'status-completed' };
-      case 'scheduled':
-        return { text: '예정', className: 'status-scheduled' };
-      case 'active':
-        return { text: '진행중', className: 'status-active' };
-      default:
-        return { text: '알 수 없음', className: 'status-unknown' };
+  const getSessionStatus = (session) => {
+    if (!session.startTime || !session.endTime) {
+      return { text: '시간 미정', className: 'status-unknown' };
+    }
+
+    const now = new Date();
+    const startTime = new Date(session.startTime);
+    const endTime = new Date(session.endTime);
+
+    if (now < startTime) {
+      return { text: '예정', className: 'status-scheduled' };
+    } else if (now >= startTime && now <= endTime) {
+      return { text: '진행중', className: 'status-active' };
+    } else {
+      return { text: '완료', className: 'status-completed' };
     }
   };
 
@@ -166,6 +204,7 @@ export const SessionManager = () => {
       <div className="session-manager-header">
         <h2 className="manager-title">세션 관리</h2>
         <p className="manager-subtitle">생성된 세션들을 관리하고 레이아웃을 확인할 수 있습니다</p>
+        {error && <div className="error-message">⚠️ {error}</div>}
       </div>
 
       <div className="session-manager-content">
@@ -173,37 +212,36 @@ export const SessionManager = () => {
         <div className="session-list-panel">
           <div className="panel-header">
             <h3 className="panel-title">세션 목록</h3>
-            <span className="session-count">{sessions.length}개</span>
+            <div className="panel-header-right">
+              <span className="session-count">{sessions.length}개</span>
+              {isLoading && <span className="loading-indicator">로딩중...</span>}
+            </div>
           </div>
           
           <div className="session-list">
             {sessions.map((session) => (
               <div
-                key={session.id}
-                className={`session-item ${selectedSession?.id === session.id ? 'selected' : ''}`}
+                key={session.sessionId}
+                className={`session-item ${selectedSession?.sessionId === session.sessionId ? 'selected' : ''}`}
                 onClick={() => handleSessionSelect(session)}
               >
                 <div className="session-item-header">
                   <h4 className="session-name">{session.name}</h4>
-                  <span className={`status-badge ${getStatusBadge(session.status).className}`}>
-                    {getStatusBadge(session.status).text}
+                  <span className={`status-badge ${getSessionStatus(session).className}`}>
+                    {getSessionStatus(session).text}
                   </span>
                 </div>
                 
                 <div className="session-info">
                   <div className="session-meta">
-                    <span className="session-department">{session.department}</span>
-                    <span className="session-participants">최대 {session.maxParticipants}명</span>
+                    <span className="session-participants">최대 {session.maxParticipant}명</span>
+                    <span className="session-id">ID: {session.sessionId}</span>
                   </div>
                   
                   <div className="session-time">
                     <span className="time-info">
                       {formatDateTime(session.startTime)} - {formatDateTime(session.endTime)}
                     </span>
-                  </div>
-                  
-                  <div className="session-created">
-                    <span className="created-info">생성: {formatDateTime(session.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -216,17 +254,14 @@ export const SessionManager = () => {
           <div className="panel-header">
             <h3 className="panel-title">
               {selectedSession ? `레이아웃 미리보기 - ${selectedSession.name}` : '레이아웃 미리보기'}
-              {/* {'레이아웃 미리보기'} */}
             </h3>
             <div className="panel-header-right">
-              {selectedSession && (
+              {selectedSession && sessionModules[selectedSession.sessionId] && (
                 <span className="module-count">
-                  {Object.values(selectedSession.layoutConfig?.modules || {})
-                    .flat()
-                    .filter(module => !module.isFixed).length}개 모듈 배치됨
+                  {sessionModules[selectedSession.sessionId].length}개 모듈 배치됨
                 </span>
               )}
-              {selectedSession && (
+              {selectedSession && sessionModules[selectedSession.sessionId] && (
                 <button 
                   className="create-with-layout-btn"
                   onClick={handleCreateWithLayout}
@@ -241,11 +276,19 @@ export const SessionManager = () => {
           
           <div className="layout-preview">
             {selectedSession ? (
-              <SessionDesigner 
-                sessionInfo={selectedSession}
-                initialLayoutConfig={selectedSession.layoutConfig}
-                readOnly={true}
-              />
+              sessionModules[selectedSession.sessionId] ? (
+                <SessionDesigner 
+                  sessionInfo={selectedSession}
+                  initialLayoutConfig={convertModulesToLayoutConfig(sessionModules[selectedSession.sessionId])}
+                  readOnly={true}
+                />
+              ) : (
+                <div className="loading-modules">
+                  <div className="loading-icon">⏳</div>
+                  <h3>모듈 정보를 불러오는 중...</h3>
+                  <p>잠시만 기다려주세요</p>
+                </div>
+              )
             ) : (
               <div className="no-session-selected">
                 <div className="no-session-icon">🎯</div>

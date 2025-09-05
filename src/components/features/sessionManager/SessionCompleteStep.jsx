@@ -93,13 +93,16 @@ export const SessionCompleteStep = ({ onPrev, sessionData }) => {
       // 백엔드 API 호출
       console.log('세션 생성 요청 데이터:', sessionData);
       
+      // layoutConfig에서 색상 정보만 추출
+      const colorsOnly = sessionData?.layoutConfig?.colors || {};
+      
       const requestData = {
         name: sessionData?.sessionInfo?.name || 'Untitled Session',
         department: sessionData?.sessionInfo?.department,
         startTime: sessionData?.sessionInfo?.startTime,
         endTime: sessionData?.sessionInfo?.endTime,
         maxParticipants: sessionData?.inviteInfo?.maxParticipants || 4,
-        layoutConfig: sessionData?.layoutConfig || {},
+        layoutConfig: { colors: colorsOnly },
         inviteEmails: sessionData?.inviteInfo?.emails || []
       };
       

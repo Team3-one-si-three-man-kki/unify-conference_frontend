@@ -12,6 +12,10 @@ export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = f
   const [insertIndex, setInsertIndex] = useState(-1);
   const [dragOverZoneId, setDragOverZoneId] = useState(null);
   const [showDropModal, setShowDropModal] = useState(false);
+  const [sessionColors, setSessionColors] = useState({ 
+    primary: '#4285f4', 
+    secondary: '#34A853' 
+  });
 
   const getInitialPlacedModules = () => {
     const defaultModules = {
@@ -68,14 +72,21 @@ export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = f
     return module;
   };
 
-  // initialLayoutConfig가 변경될 때 placedModules 업데이트
+  // initialLayoutConfig가 변경될 때 placedModules와 색상 업데이트
   useEffect(() => {
-    if (initialLayoutConfig && initialLayoutConfig.modules) {
-      // 새로운 구조로 변환
-      const processedModules = {
-        main_video: [],
-        bottom_modules: []
-      };
+    if (initialLayoutConfig) {
+      // 색상 정보 로드
+      if (initialLayoutConfig.colors) {
+        setSessionColors(initialLayoutConfig.colors);
+      }
+
+      // 모듈 정보 처리
+      if (initialLayoutConfig.modules) {
+        // 새로운 구조로 변환
+        const processedModules = {
+          main_video: [],
+          bottom_modules: []
+        };
       
       // main_video 처리
       if (initialLayoutConfig.modules.main_video) {
@@ -125,9 +136,14 @@ export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = f
         }
       }
       
-      setPlacedModules(processedModules);
+        setPlacedModules(processedModules);
+      }
     }
   }, [initialLayoutConfig, availableModulesList]); // availableModulesList 의존성 추가
+
+  const handleColorsChange = (colors) => {
+    setSessionColors(colors);
+  };
 
   const handleDragStart = (event) => {
     setActiveId(event.active.id);
@@ -559,17 +575,24 @@ export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = f
 
     const layoutData = {
       timestamp: new Date().toISOString(),
+      colors: sessionColors,
       modules: {
         main_video: placedModules.main_video || [],
         bottom_modules: convertModulesToOrder(placedModules.bottom_modules || [])
       }
+    };
+
+    // layout_config에는 색상 정보만 저장
+    const configForDatabase = {
+      colors: sessionColors
     };
     
     console.log('Converted layout data with orders:', layoutData);
     
     if (onSave) {
       // 세션 생성 프로세스에서 호출된 경우
-      onSave(layoutData);
+      // layoutConfig를 색상 정보만 포함하도록 변경
+      onSave({ ...layoutData, layoutConfig: configForDatabase });
     } else {
       // 단독 레이아웃 디자이너로 사용된 경우
       console.log('Layout saved:', layoutData);
@@ -655,6 +678,8 @@ export const LayoutDesigner = ({ onSave, onPrev, sessionInfo, showNavigation = f
             insertIndex={insertIndex}
             dragOverZoneId={dragOverZoneId}
             isDragging={!!activeId}
+            sessionColors={sessionColors}
+            onColorsChange={handleColorsChange}
           />
         </div>
 

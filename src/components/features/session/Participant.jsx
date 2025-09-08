@@ -3,13 +3,15 @@
 import React, { useEffect, useRef } from 'react';
 import styles from './Participant.module.css';
 import { useMediaPipe } from '../../../hooks/useMediaPipe';
+import { useSessionStore } from '../../../store/session/sessionStore'; // Import useSessionStore
 
 const Participant = ({ participant, onPin }) => {
   const videoRef = useRef(null);
   const audioRef = useRef(null);
   const canvasRef = useRef(null);
+  const { faceAiModule } = useSessionStore(); // Get faceAiModule from store
 
-  const aiEnabled = participant.isLocal && !participant.isCameraOff;
+  const aiEnabled = participant.isLocal && !participant.isCameraOff && (faceAiModule?.isActive || false); // Add faceAiModule?.isActive check
   useMediaPipe(videoRef, canvasRef, aiEnabled);
 
   // 비디오 트랙 연결

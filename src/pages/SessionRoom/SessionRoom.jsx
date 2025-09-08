@@ -173,9 +173,6 @@ export const SessionRoom = () => {
         if (isScreenShareActive) {
             main = screenSharingParticipant; // The screen share itself is the main content
             sidebar = participants; // All camera feeds (including the screen sharer's camera) go to the sidebar
-        } else if (isWhiteboardActive) {
-            main = null; // Whiteboard is the main content
-            sidebar = participants; // All camera feeds go to the sidebar
         } else if (pinnedId) {
             main = participants.find(p => p.id === pinnedId);
             sidebar = participants.filter(p => p.id !== pinnedId);
@@ -183,6 +180,14 @@ export const SessionRoom = () => {
             // Default state: local participant is main, remote participants are sidebar
             main = localParticipant;
             sidebar = remoteParticipants;
+        }
+
+        // If whiteboard is active, and no screen share or pinned participant,
+        // the local participant should still be the main content.
+        // The MainStage component will handle rendering the whiteboard over/alongside it.
+        if (isWhiteboardActive && !isScreenShareActive && !pinnedId) {
+            main = localParticipant;
+            sidebar = participants; // All camera feeds go to the sidebar
         }
 
         return { mainParticipant: main, sidebarParticipants: sidebar };
@@ -206,15 +211,13 @@ export const SessionRoom = () => {
         <div className={styles.sessionRoomContainer}>
             <div className={styles.mainContentArea}>
                 <div className={styles.mainVideoArea}>
-                    {/* 🔽 Whiteboard 컴포넌트를 MainStage 밖으로 이동시켰습니다. */}
-                    {isWhiteboardActive && <Whiteboard isVisible={isWhiteboardActive} />}
                     <MainStage
                         participants={participants}
                         pinnedId={pinnedId}
                         localStream={localStream}
-                        isVisible={!isWhiteboardActive}
                         isCameraOff={isCameraOff}
                         localStreamError={localStreamError}
+                        isWhiteboardActive={isWhiteboardActive} // Pass isWhiteboardActive to MainStage
                     />
                 </div>
                 <Sidebar>

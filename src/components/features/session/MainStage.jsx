@@ -1,25 +1,29 @@
 // src/components/features/session/MainStage.jsx
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import styles from './MainStage.module.css';
-import Whiteboard from './Whiteboard';
-import { useSessionStore } from '../../../store/session/sessionStore';
 import { useMediaPipe } from '../../../hooks/useMediaPipe';
+import { useSessionStore } from '../../../store/session/sessionStore';
+import Whiteboard from './Whiteboard'; // Whiteboard 컴포넌트 임포트
 
-import { useMemo } from 'react';
+// 🔽 LocalParticipant와 동일한 AiCanvas 컴포넌트 추가
+const AiCanvas = ({ videoRef, canvasRef, aiEnabled }) => {
+    useMediaPipe(videoRef, canvasRef, aiEnabled);
+    return <canvas ref={canvasRef} className={styles.aiCanvas} />;
+};
 
-const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStreamError, isVisible }) => {
-  const mainVideoRef = useRef(null);
+const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStreamError, isWhiteboardActive }) => {
+  const mainVideoRef = useRef(null); // For main participant video
+  const pipVideoRef = useRef(null); // For picture-in-picture local video when whiteboard is active
   const screenShareVideoRef = useRef(null);
-  const aiCanvasRef = useRef(null); // New ref for AI canvas
+  const aiCanvasRef = useRef(null);
 
-  const { roomClient, screenShareTrack, remoteScreenShareTrack, isWhiteboardActive, screenSharingParticipantId, sessionModules } = useSessionStore();
+  const { screenShareTrack, remoteScreenShareTrack, screenSharingParticipantId, sessionModules } = useSessionStore();
 
   const mainParticipant = useMemo(() => {
     const screenSharingParticipant = screenSharingParticipantId
       ? {
-          id: screenSharingParticipantId,
-          isScreenSharing: true,
+          id: screenSharingParticipantId, isScreenSharing: true,
           videoConsumer: { track: remoteScreenShareTrack },
           userName: participants.find(p => p.id === screenSharingParticipantId)?.userName || '화면 공유'
         }
@@ -31,24 +35,38 @@ const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStre
     return participants.find(p => p.isLocal);
   }, [participants, pinnedId, screenShareTrack, remoteScreenShareTrack, screenSharingParticipantId]);
 
-  const faceAiModule = sessionModules.find(m => m.code === 'FACEAI');
-  // AI 기능 활성화 조건: 로컬 참여자이고, 카메라가 켜져 있으며, FACEAI 모듈이 활성화되어 있고, 화면 공유 중이 아닐 때
-  const aiEnabled = mainParticipant?.isLocal && !isCameraOff && (faceAiModule?.isActive || false) && !screenShareTrack && !remoteScreenShareTrack;
-  useMediaPipe(mainVideoRef, aiCanvasRef, aiEnabled); // Pass aiCanvasRef to useMediaPipe
 
-  // Main participant 비디오 스트림 설정
+  const faceAiModule = sessionModules.find(m => m.code === 'FACEAI');
+  const isScreenShareActive = !!screenShareTrack || !!remoteScreenShareTrack;
+  
+  const aiEnabled =
+    !!faceAiModule &&
+    mainParticipant?.isLocal &&
+    !isCameraOff &&
+    faceAiModule.isActive &&
+    !isScreenShareActive;
+
+  // 비디오 스트림 설정
   useEffect(() => {
-    if (mainVideoRef.current) {
+    let targetVideoElement = null;
+    if (isWhiteboardActive && mainParticipant?.isLocal) {
+      targetVideoElement = pipVideoRef.current;
+    } else if (!isWhiteboardActive) {
+      targetVideoElement = mainVideoRef.current;
+    }
+
+    if (targetVideoElement) {
       let stream = null;
       if (mainParticipant?.isLocal) {
         stream = localStream;
       } else if (mainParticipant?.videoConsumer?.track) {
         stream = new MediaStream([mainParticipant.videoConsumer.track]);
       }
-      mainVideoRef.current.srcObject = stream;
+      targetVideoElement.srcObject = stream;
     }
-  }, [mainParticipant, localStream]);
+  }, [mainParticipant, localStream, isWhiteboardActive]);
 
+  // 화면 공유 스트림 설정 (기존과 동일)
   useEffect(() => {
     if (!screenShareVideoRef.current) return;
     const trackToDisplay = screenShareTrack || remoteScreenShareTrack;
@@ -59,72 +77,71 @@ const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStre
     }
   }, [screenShareTrack, remoteScreenShareTrack]);
 
-  return (
-    <div id="mainStageContainer" className={styles.mainStageContainer}>
-      {isVisible && (
-        <>
-          {/* 3. 화면 공유 트랙(로컬 또는 원격)이 있으면 화면 공유를, 없으면 참여자 비디오를 보여줍니다. */}
-          {screenShareTrack || remoteScreenShareTrack ? (
-            <div className={`${styles.mainStageLayer} ${styles.screenShareLayer}`}>
+  const renderContent = () => {
+    if (isWhiteboardActive) {
+      return (
+        <div className={`${styles.mainStageLayer} ${styles.whiteboardLayer}`}>
+          <Whiteboard isVisible={isWhiteboardActive} />
+          {/* Local participant's camera as a small picture-in-picture when whiteboard is active */}
+          {mainParticipant?.isLocal && !isCameraOff && !localStreamError && (
+            <div className={styles.pipVideoWrapper}>
               <video
-                ref={screenShareVideoRef}
+                ref={pipVideoRef}
                 autoPlay
                 playsInline
-                className={styles.mainVideoElement}
+                muted
+                className={styles.pipVideoElement}
               />
-            </div>
-          ) : (
-            <div className={`${styles.mainStageLayer} ${styles.pinnedVideoLayer}`}>
-              {mainParticipant ? (
-                <>
-                  {mainParticipant.isLocal && localStreamError ? (
-                    <div className={styles.videoErrorOverlay}>
-                      <p>카메라를 사용할 수 없습니다.</p>
-                      {localStreamError?.details && <small>{localStreamError.details}</small>}
-                    </div>
-                  ) : (
-                    <>
-                      <div className={styles.videoWrapper}>
-                        <video
-                          ref={mainVideoRef}
-                          autoPlay
-                          playsInline
-                          muted={mainParticipant.isLocal}
-                          className={styles.mainVideoElement}
-                          style={{ opacity: (!mainParticipant.isLocal && mainParticipant.isCameraOff) || (mainParticipant.isLocal && isCameraOff) ? 0 : 1 }}
-                          data-username={mainParticipant.userName || `User-${mainParticipant.id?.slice(-4)}`}
-                        />
-                        {((!mainParticipant.isLocal && mainParticipant.isCameraOff) || (mainParticipant.isLocal && isCameraOff)) && (
-                          <div className={styles.cameraOffOverlay}>
-                            <span>{mainParticipant.userName}</span>
-                          </div>
-                        )}
-                        {aiEnabled && <canvas ref={aiCanvasRef} className={styles.aiCanvas} />}
-                      </div>
-                    </>
-                  )}
-                </>
-              ) : (
-                <div className={styles.dropZoneLabel}>연결된 참여자가 없습니다.</div>
-              )}
+              {/* When in PIP, AI canvas should also use pipVideoRef */}
+              {!!faceAiModule && <AiCanvas videoRef={pipVideoRef} canvasRef={aiCanvasRef} aiEnabled={aiEnabled} />}
             </div>
           )}
-          {/* 디버깅을 위한 aiEnabled 상태 표시 (화면 공유 여부와 관계없이 항상 표시) */}
-          <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.5)', color: 'white', padding: '5px', zIndex: 1000 }}>
-            AI Enabled: {aiEnabled ? 'True' : 'False'}
-            <br />
-            isLocal: {mainParticipant?.isLocal ? 'True' : 'False'}
-            <br />
-            isCameraOff: {isCameraOff ? 'True' : 'False'}
-            <br />
-            FACEAI Module Active: {faceAiModule?.isActive ? 'True' : 'False'}
-            <br />
-            ScreenShareTrack: {screenShareTrack ? 'True' : 'False'}
-            <br />
-            RemoteScreenShareTrack: {remoteScreenShareTrack ? 'True' : 'False'}
-          </div>
-        </>
-      )}
+        </div>
+      );
+    }
+
+    if (isScreenShareActive) {
+      return (
+        <div className={`${styles.mainStageLayer} ${styles.screenShareLayer}`}>
+          <video ref={screenShareVideoRef} autoPlay playsInline className={styles.mainVideoElement} />
+        </div>
+      );
+    }
+
+    if (mainParticipant) {
+      const isActuallyCameraOff = mainParticipant.isLocal ? isCameraOff : mainParticipant.isCameraOff;
+      return (
+        <div className={`${styles.mainStageLayer} ${styles.pinnedVideoLayer}`}>
+          {mainParticipant.isLocal && localStreamError ? (
+            <div className={styles.videoErrorOverlay}>
+              <p>카메라를 사용할 수 없습니다.</p>
+            </div>
+          ) : (
+            <div className={styles.videoWrapper}>
+              <video
+                ref={mainVideoRef} autoPlay playsInline muted={mainParticipant.isLocal}
+                className={styles.mainVideoElement}
+                style={{ opacity: isActuallyCameraOff ? 0 : 1 }}
+              />
+              {isActuallyCameraOff && (
+                <div className={styles.cameraOffOverlay}>
+                  <span>{mainParticipant.userName}</span>
+                </div>
+              )}
+              {/* 🔽 모듈 존재 여부 확인 후 AiCanvas 렌더링 */}
+              {!!faceAiModule && <AiCanvas videoRef={mainVideoRef} canvasRef={aiCanvasRef} aiEnabled={aiEnabled} />}
+            </div>
+          )}
+        </div>
+      );
+    }
+    
+    return <div className={styles.dropZoneLabel}>메인 화면에 표시할 참여자가 없습니다.</div>;
+  };
+  
+  return (
+    <div id="mainStageContainer" className={styles.mainStageContainer}>
+        {renderContent()}
     </div>
   );
 };

@@ -66,6 +66,9 @@ const Participant = ({ participant, onPin }) => {
         )}
         {isCameraOff && (
           <div className={styles.cameraOffOverlay}>
+            <div className={styles.avatarPlaceholder}>
+              {participant.userName ? participant.userName.charAt(0).toUpperCase() : ''}
+            </div>
             <span>{participant.userName || `User-${participant.id?.slice(-4)}`}</span>
           </div>
         )}

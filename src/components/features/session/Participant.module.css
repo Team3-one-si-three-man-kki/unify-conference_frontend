@@ -60,12 +60,12 @@
 }
 
 .audioMutedIndicator {
-    background-image: url('../../assets/icons/mic_off.svg'); /* 음소거 이미지 경로 */
+    background-image: url('../../../assets/icons/mic_off.svg'); /* 음소거 이미지 경로 */
     background-size: 14px; /* 이미지 크기 조절 */
 }
 
 .videoPausedIndicator {
-    background-image: url('../../assets/icons/camera_off.svg'); /* 카메라 꺼짐 이미지 경로 */
+    background-image: url('../../../assets/icons/camera_off.svg'); /* 카메라 꺼짐 이미지 경로 */
     background-size: 16px; /* 이미지 크기 조절 */
 }
 

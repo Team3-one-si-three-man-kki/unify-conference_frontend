@@ -81,6 +81,13 @@ export class RoomClient {
     });
   }
 
+  sendCanvasData(data) {
+    this._sendWsMessage({
+      action: 'canvas',
+      data: { ...data, sender: this.myPeerId },
+    });
+  }
+
   join(roomId, userName, userEmail, tenantId, options = {}) {
     this.initialMediaStates = {
       micMuted: options.initialMicMuted,
@@ -128,6 +135,9 @@ export class RoomClient {
         case "canvas":
           this.emit("canvas", msg.data);
           break;
+        case "canvasState":
+          this.set({ isWhiteboardActive: msg.data.isActive });
+          break;
         case "rtpCapabilities":
           await this._handleRtpCapabilities(msg.data);
           break;
@@ -152,15 +162,9 @@ export class RoomClient {
         case "producerStateChanged": {
           const { producerId, kind, state } = msg.data;
           if (state === "pause") {
-            if (kind === "video")
-              this.emit("remote-producer-pause", { producerId });
-            if (kind === "audio")
-              this.emit("remote-audio-pause", { producerId });
+            this.emit("remote-producer-pause", { producerId, kind });
           } else if (state === "resume") {
-            if (kind === "video")
-              this.emit("remote-producer-resume", { producerId });
-            if (kind === "audio")
-              this.emit("remote-audio-resume", { producerId });
+            this.emit("remote-producer-resume", { producerId, kind });
           }
           break;
         }
@@ -273,14 +277,14 @@ export class RoomClient {
       if (videoTrack) {
         const videoProducer = await this.sendTransport.produce({
           track: videoTrack,
-          appData: { source: 'webcam' }
+          appData: { source: 'webcam', peerId: this.myPeerId }
         });
         this.producers.set(videoProducer.id, videoProducer);
       }
       if (audioTrack) {
         const audioProducer = await this.sendTransport.produce({
           track: audioTrack,
-          appData: { source: 'mic' }
+          appData: { source: 'mic', peerId: this.myPeerId }
         });
         this.producers.set(audioProducer.id, audioProducer);
       }
@@ -345,6 +349,9 @@ export class RoomClient {
         console.warn(`Producer ${producer.producerId} already has a consumer. Skipping adding to pending list.`);
       }
     }
+
+    // 칠판의 현재 상태를 서버에 요청
+    this._sendWsMessage({ action: 'getCanvasState' });
 
     //    recvTransport가 아직 없으면 생성을 요청하고,
     //    이미 있다면 바로 대기열을 처리하여 타이밍 문제를 해결.
@@ -422,26 +429,28 @@ export class RoomClient {
 
   _handleProducerClosed({ producerId }) {
     const consumer = this.producerIdToConsumer.get(producerId);
+    let isRemoteScreenShare = false;
+
     if (consumer) {
+      if (consumer.appData.source === 'screen') {
+        isRemoteScreenShare = true;
+      }
       consumer.close();
       this.consumers.delete(consumer.id);
       this.producerIdToConsumer.delete(producerId);
     }
 
-    // producerIdToPeerIdMap에서 peerId를 찾아 제거
     const peerId = this.producerToPeerIdMap.get(producerId);
     if (peerId) {
       this.producerToPeerIdMap.delete(producerId);
     }
 
-    // 화면 공유 프로듀서가 닫혔는지 확인하고, 그렇다면 UI에 알림
     const isScreenShareProducer =
       this.screenProducer && this.screenProducer.id === producerId;
-    // 로컬 비디오 프로듀서가 닫혔는지 확인
     const producer = this.producers.get(producerId);
     const isLocalVideoProducer = producer && producer.kind === 'video' && (producer.appData && !producer.appData.source);
 
-    this.emit("producer-closed", { producerId, isScreenShareProducer, isLocalVideoProducer, peerId });
+    this.emit("producer-closed", { producerId, isScreenShareProducer, isLocalVideoProducer, peerId, isRemoteScreenShare });
   }
   async _sendRequest(action, data) {
     return new Promise((resolve, reject) => {

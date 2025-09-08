@@ -13,7 +13,7 @@ export const fetchSessionModules = async (sessionId) => {
                 { code: 'SCREEN', name: '화면공유', icon: '🖥️', type: 'ACTION_MODULE' },
                 { code: 'CHAT', name: '채팅', icon: '💬', type: 'UI_MODULE' },
                 { code: 'WHITEBOARD', name: '칠판', icon: '칠판아이콘', type: 'UI_MODULE' },
-                { code: 'FACEAI', name: '집중도', icon: '🤖', type: 'UI_MODULE' },
+                // { code: 'FACEAI', name: '집중도', icon: '🤖', type: 'UI_MODULE' },
             ];
             console.log('[API] Mock modules fetched:', mockModules);
             resolve(mockModules);

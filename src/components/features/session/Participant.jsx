@@ -49,13 +49,25 @@ const Participant = ({ participant, onPin }) => {
     >
       <audio ref={audioRef} autoPlay playsInline />
       
-      {participant.videoConsumer?.track || participant.localStream ? (
-        <video ref={videoRef} autoPlay playsInline muted={participant.isLocal} className={styles.participantVideo} />
-      ) : (
-        <div className={styles.noVideoOverlay}>
-          <p>영상 없음</p>
-        </div>
-      )}
+      <div className={styles.videoWrapper}>
+        {(participant.videoConsumer?.track || participant.localStream) ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted={participant.isLocal}
+            className={styles.participantVideo}
+            style={{ opacity: isCameraOff ? 0 : 1 }}
+          />
+        ) : (
+          <div className={styles.noVideoOverlay}><p>영상 없음</p></div>
+        )}
+        {isCameraOff && (
+          <div className={styles.cameraOffOverlay}>
+            <span>{participant.userName || `User-${participant.id?.slice(-4)}`}</span>
+          </div>
+        )}
+      </div>
       
       {aiEnabled && <canvas ref={canvasRef} className={styles.aiCanvas} />}
       <div className={styles.participantName}>

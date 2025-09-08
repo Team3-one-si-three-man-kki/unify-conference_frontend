@@ -7,9 +7,10 @@ const LocalParticipant = ({ participant, onPin }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
 
-    const { isCameraOff, localStreamError } = useSessionStore();
+    const { isCameraOff, isMicMuted, localStreamError, sessionModules } = useSessionStore();
 
-    const aiEnabled = !isCameraOff && !localStreamError;
+    const faceAiModule = sessionModules.find(m => m.code === 'FACEAI');
+    const aiEnabled = !isCameraOff && !localStreamError && (faceAiModule?.isActive || false);
     useMediaPipe(videoRef, canvasRef, aiEnabled);
 
     useEffect(() => {
@@ -36,7 +37,7 @@ const LocalParticipant = ({ participant, onPin }) => {
                 {participant.userName}
             </div>
             <div className={styles.statusIndicatorContainer}>
-                {participant.isMicMuted && (
+                {isMicMuted && (
                     <div className={styles.audioMutedIndicator} title="음소거됨"></div>
                 )}
                 {isCameraOff && (

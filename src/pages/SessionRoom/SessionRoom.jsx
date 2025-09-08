@@ -12,31 +12,34 @@ import ChatWindow from '../../components/features/chat/ChatWindow';
 import Modal from '../../components/ui/Modal/Modal';
 import Participant from '../../components/features/session/Participant';
 import LocalParticipant from '../../components/features/session/LocalParticipant';
+import Whiteboard from '../../components/features/session/Whiteboard'; // Whiteboard 컴포넌트 임포트
 
 export const SessionRoom = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const [roomClient, setRoomClient] = useState(null);
+    const [localRoomClient, setLocalRoomClient] = useState(null);
     const didAutoJoinRef = useRef(false);
 
     // Zustand 스토어에서 상태와 액션을 가져옵니다.
     const {
         isConnected, participants, localStream, isMicMuted, isCameraOff,
-        isScreenSharing, sessionModules, messages, isAdmin, isWhiteboardActive,
+        isScreenSharing, screenShareTrack, remoteScreenShareTrack, screenSharingParticipantId,
+        sessionModules, messages, isAdmin, isWhiteboardActive,
         isDrowsy, isAbsent, showAttendanceModal, error, localStreamError
     } = useSessionStore();
 
     const {
         handleConnectionOpen, handleConnectionClose, updateParticipant, removeParticipant,
-        addMessage, setLocalStream, setLocalStreamError, setIsAdmin, setIsMicMuted,
-        setIsCameraOff, setIsScreenSharing, setIsWhiteboardActive, setCanvasData,
+        addMessage, setRoomClient, setLocalStream, setLocalStreamError, setIsAdmin, setIsMicMuted,
+        setIsCameraOff, setIsScreenSharing, setRemoteScreenShare, setIsWhiteboardActive, setCanvasData,
         setIsDrowsy, setIsAbsent, setShowAttendanceModal, setError
-    } = useSessionStore.getState();
+    } = useSessionStore();
 
     // 컴포넌트 마운트 시 RoomClient 인스턴스 생성 및 이벤트 리스너 설정
     useEffect(() => {
         const client = new RoomClient(useSessionStore.setState, useSessionStore.getState);
-        setRoomClient(client);
+        setLocalRoomClient(client); // 로컬 상태에 RoomClient 인스턴스 저장
+        setRoomClient(client); // Zustand 스토어에 RoomClient 인스턴스 저장
 
         // --- 이벤트 리스너 재정리 ---
 
@@ -54,9 +57,14 @@ export const SessionRoom = () => {
         
         // 3. 다른 사람의 미디어를 받으면, 해당 참가자 정보를 생성/업데이트합니다.
         client.on('new-consumer', (consumer) => {
-            const { peerId, userName } = consumer.appData;
-            const update = { id: peerId, userName, isLocal: false };
+            const { peerId, userName, source } = consumer.appData;
 
+            if (source === 'screen') {
+                setRemoteScreenShare(consumer.track, peerId);
+                return;
+            }
+
+            const update = { id: peerId, userName, isLocal: false };
             if (consumer.kind === 'video') {
                 update.videoConsumer = consumer;
             } else if (consumer.kind === 'audio') {
@@ -68,6 +76,12 @@ export const SessionRoom = () => {
         // 4. 다른 사람이 나가면 명확한 이벤트로 처리합니다.
         client.on('peer-closed', ({ peerId }) => {
             removeParticipant(peerId);
+        });
+
+        client.on('producer-closed', ({ isRemoteScreenShare }) => {
+            if (isRemoteScreenShare) {
+                setRemoteScreenShare(null, null);
+            }
         });
         
         // --- 나머지 이벤트 리스너들은 동일 ---
@@ -82,16 +96,37 @@ export const SessionRoom = () => {
         client.on("localVideoStateChanged", (isEnabled) => setIsCameraOff(!isEnabled));
         client.on("localAudioStateChanged", (isEnabled) => setIsMicMuted(!isEnabled));
 
+        // --- 원격 참여자 상태 변경 이벤트 핸들러 추가 ---
+        const handleRemoteProducerState = ({ peerId, kind, paused }) => {
+            if (!peerId) return;
+
+            if (kind === 'video') {
+                updateParticipant({ id: peerId, isCameraOff: paused });
+            } else if (kind === 'audio') {
+                updateParticipant({ id: peerId, isMicMuted: paused });
+            }
+        };
+
+        client.on("remote-producer-pause", ({ producerId, kind }) => {
+            const peerId = client.producerToPeerIdMap.get(producerId);
+            handleRemoteProducerState({ peerId, kind, paused: true });
+        });
+        client.on("remote-producer-resume", ({ producerId, kind }) => {
+            const peerId = client.producerToPeerIdMap.get(producerId);
+            handleRemoteProducerState({ peerId, kind, paused: false });
+        });
+        // --- 핸들러 추가 끝 ---
+
         // 컴포넌트 언마운트 시 클린업
         return () => {
             client.close();
             handleConnectionClose();
         };
-    }, []); // 의존성 배열이 비어있는 것은 올바릅니다.
+    }, []); // 의존성 배열을 비워 컴포넌트 마운트 시 한 번만 실행되도록 수정
 
     // 자동 조인 로직
     useEffect(() => {
-        if (roomClient && !isConnected && !didAutoJoinRef.current) {
+        if (localRoomClient && !isConnected && !didAutoJoinRef.current) {
             didAutoJoinRef.current = true;
             const { userName, userEmail, isMicMuted: initialMicMuted, isCameraOff: initialCameraOff } = location.state || {};
             
@@ -103,56 +138,65 @@ export const SessionRoom = () => {
             const testUserName = userName || `TestUser-${Math.random().toString(36).substring(7)}`;
             const testUserEmail = userEmail || `test-${Math.random().toString(36).substring(7)}@example.com`;
             const testTenantId = '2';
-            roomClient.join(testRoomId, testUserName, testUserEmail, testTenantId, {
+            localRoomClient.join(testRoomId, testUserName, testUserEmail, testTenantId, {
                 initialMicMuted: initialMicMuted,
                 initialCameraOff: initialCameraOff
             });
         }
-    }, [roomClient, isConnected, location.state]);
+    }, [localRoomClient, isConnected, location.state]);
 
     // UI 상태 및 핸들러
     const [pinnedId, setPinnedId] = useState(null);
     const [isChatOpen, setIsChatOpen] = useState(false);
 
-    const localParticipant = useMemo(() => {
-        const p = participants.find(p => p.isLocal);
-        if (p) {
-            // Ensure the local participant object has the latest camera status from the store
-            return { ...p, isCameraOff };
-        }
-        return p;
-    }, [participants, isCameraOff]);
-    const remoteParticipants = useMemo(() => participants.filter(p => !p.isLocal), [participants]);
-
-    const mainParticipant = useMemo(() => {
-        if (pinnedId) return participants.find(p => p.id === pinnedId);
-        return remoteParticipants.length > 0 ? remoteParticipants[0] : localParticipant;
-    }, [pinnedId, participants, remoteParticipants, localParticipant]);
-
     const handlePinParticipant = React.useCallback((id) => {
         setPinnedId(prev => (prev === id ? null : id));
     }, []);
 
-    const sidebarParticipants = useMemo(() =>
-        participants
-            .filter(p => p.id !== mainParticipant?.id)
-            .map(p => {
-                if (p.isLocal) {
-                    return <LocalParticipant key={p.id} participant={p} onPin={handlePinParticipant} />;
-                }
-                return <Participant key={p.id} participant={p} onPin={handlePinParticipant} />;
-            }),
-        [participants, mainParticipant, handlePinParticipant]
-    );
+    const { mainParticipant, sidebarParticipants } = useMemo(() => {
+        const localParticipant = participants.find(p => p.isLocal);
+        const remoteParticipants = participants.filter(p => !p.isLocal);
+        const screenSharingParticipant = screenSharingParticipantId
+            ? {
+                id: screenSharingParticipantId,
+                isScreenSharing: true,
+                videoConsumer: { track: remoteScreenShareTrack },
+                userName: participants.find(p => p.id === screenSharingParticipantId)?.userName || '화면 공유'
+              }
+            : null;
+
+        let main = localParticipant;
+        let sidebar = remoteParticipants;
+
+        const isScreenShareActive = isScreenSharing || !!screenSharingParticipantId;
+
+        if (isScreenShareActive) {
+            main = screenSharingParticipant; // The screen share itself is the main content
+            sidebar = participants; // All camera feeds (including the screen sharer's camera) go to the sidebar
+        } else if (isWhiteboardActive) {
+            main = null; // Whiteboard is the main content
+            sidebar = participants; // All camera feeds go to the sidebar
+        } else if (pinnedId) {
+            main = participants.find(p => p.id === pinnedId);
+            sidebar = participants.filter(p => p.id !== pinnedId);
+        } else {
+            // Default state: local participant is main, remote participants are sidebar
+            main = localParticipant;
+            sidebar = remoteParticipants;
+        }
+
+        return { mainParticipant: main, sidebarParticipants: sidebar };
+    }, [participants, pinnedId, isScreenSharing, screenSharingParticipantId, remoteScreenShareTrack, isWhiteboardActive]);
     const handleToggleChat = () => setIsChatOpen(prev => !prev);
     const handleLeaveRoom = () => {
-        roomClient?.close();
-        navigate('/');
+        localRoomClient?.close();
+        const roomId = location.pathname.split('/')[2];
+        navigate(`/waiting/${roomId}`);
     };
-    const toggleAudio = () => roomClient?.setAudioEnabled(!isMicMuted);
-    const toggleVideo = () => roomClient?.setVideoEnabled(!isCameraOff);
-    const toggleScreenShare = () => isScreenSharing ? roomClient?.stopScreenShare() : roomClient?.startScreenShare();
-    const sendChatMessage = (text) => roomClient?.sendChatMessage(text);
+    const toggleAudio = () => localRoomClient?.setAudioEnabled(isMicMuted);
+    const toggleVideo = () => localRoomClient?.setVideoEnabled(isCameraOff);
+    const toggleScreenShare = () => isScreenSharing ? localRoomClient?.stopScreenShare() : localRoomClient?.startScreenShare();
+    const sendChatMessage = (text) => localRoomClient?.sendChatMessage(text);
 
     if (!isConnected) {
         return <div>세션 연결 중...</div>;
@@ -162,33 +206,41 @@ export const SessionRoom = () => {
         <div className={styles.sessionRoomContainer}>
             <div className={styles.mainContentArea}>
                 <div className={styles.mainVideoArea}>
+                    {/* 🔽 Whiteboard 컴포넌트를 MainStage 밖으로 이동시켰습니다. */}
+                    {isWhiteboardActive && <Whiteboard isVisible={isWhiteboardActive} />}
                     <MainStage
-                        mainParticipant={mainParticipant}
+                        participants={participants}
+                        pinnedId={pinnedId}
                         localStream={localStream}
-                        isWhiteboardActive={isWhiteboardActive}
+                        isVisible={!isWhiteboardActive}
                         isCameraOff={isCameraOff}
                         localStreamError={localStreamError}
                     />
-                    {sessionModules.length > 0 && (
-                        <ControlBar
-                            modules={sessionModules}
-                            isMicMuted={isMicMuted}
-                            isCameraOff={isCameraOff}
-                            isScreenSharing={isScreenSharing}
-                            onToggleAudio={toggleAudio}
-                            onToggleVideo={toggleVideo}
-                            onToggleScreenShare={toggleScreenShare}
-                            onToggleChat={handleToggleChat}
-                            onLeave={handleLeaveRoom}
-                            isAdmin={isAdmin}
-                            isWhiteboardActive={isWhiteboardActive}
-                        />
-                    )}
                 </div>
                 <Sidebar>
-                    {sidebarParticipants}
+                    {sidebarParticipants.map(p => {
+                        if (p.isLocal) {
+                            return <LocalParticipant key={p.id} participant={p} onPin={handlePinParticipant} />;
+                        }
+                        return <Participant key={p.id} participant={p} onPin={handlePinParticipant} />;
+                    })}
                 </Sidebar>
             </div>
+            {sessionModules.length > 0 && (
+                <ControlBar
+                    modules={sessionModules}
+                    isMicMuted={isMicMuted}
+                    isCameraOff={isCameraOff}
+                    isScreenSharing={isScreenSharing}
+                    onToggleAudio={toggleAudio}
+                    onToggleVideo={toggleVideo}
+                    onToggleScreenShare={toggleScreenShare}
+                    onToggleChat={handleToggleChat}
+                    onLeave={handleLeaveRoom}
+                    isAdmin={isAdmin}
+                    isWhiteboardActive={isWhiteboardActive}
+                />
+            )}
             {isChatOpen && <ChatWindow messages={messages} onSendMessage={sendChatMessage} onClose={handleToggleChat} />}
             
             {/* Modals */}

@@ -1,40 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { RefreshCw, Building2, Package, Users, Activity, TrendingUp, DollarSign, Clock, CheckCircle, AlertTriangle } from 'lucide-react';
-
-console.log('[auth-check] localStorage.accessToken =', localStorage.getItem('accessToken'));
-console.log('[auth-check] sessionStorage.accessToken =', sessionStorage.getItem('accessToken'));
-
-/** ----------------------------------------------------------------
- * 공통 fetch 유틸 (토큰 자동 첨부 + 타임아웃 + 안전한 ASCII 클린)
- * ---------------------------------------------------------------- */
-async function fetchJSON(url, options = {}, timeout = 8000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  try {
-    let raw = sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken') || '';
-    try {
-      const j = JSON.parse(raw);
-      if (j?.accessToken) raw = j.accessToken;
-    } catch (_) {}
-
-    const clean = String(raw).replace(/^Bearer\s+/i, '').replace(/[^\x20-\x7E]/g, '').trim();
-    const token = clean ? `Bearer ${clean}` : null;
-
-    const res = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(options.headers || {}),
-        ...(token ? { Authorization: token } : {}),
-      },
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status} @ ${url}`);
-    return await res.json();
-  } finally {
-    clearTimeout(id);
-  }
-}
+import apiClient from '../../services/api/api';
 
 /** ----------------------------------------------------------------
  * 테넌트 API 시퀀스 시도 (경로가 다를 수 있어 순차로 시도)
@@ -54,8 +20,8 @@ async function getTenants({ page = 1, size = 50, keyword = '' } = {}) {
   for (const makeUrl of TENANT_ENDPOINTS) {
     const url = makeUrl(page, size, keyword);
     try {
-      const json = await fetchJSON(url);
-      return normalizeTenants(json);
+      const response = await apiClient.get(url);
+      return normalizeTenants(response.data);
     } catch (e) {
       errors.push(e.message);
     }
@@ -118,14 +84,16 @@ const DashboardAnalytics = () => {
     setTenantError('');
     try {
       // 1) 모듈 목록 불러오기
-      const res = await fetch('/api/marketplace/modules?pageSize=50&pageIndex=1');
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
+      const moduleResponse = await apiClient.get('/api/marketplace/modules', {
+        params: { pageSize: 50, pageIndex: 1 },
+      });
+      const json = moduleResponse.data;
 
       // 2) 외부 서버 상태 불러오기 (인증 필요시 자동첨부)
       let serverStats = null;
       try {
-        serverStats = await fetchJSON('https://13.125.229.206:3000/api/admin/server-stats');
+        const serverStatsResponse = await apiClient.get('https://13.125.229.206:3000/api/admin/server-stats');
+        serverStats = serverStatsResponse.data;
       } catch (err) {
         console.error('외부 서버 상태 불러오기 실패:', err);
       }

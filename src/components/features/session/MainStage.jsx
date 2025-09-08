@@ -125,6 +125,9 @@ const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStre
               />
               {isActuallyCameraOff && (
                 <div className={styles.cameraOffOverlay}>
+                  <div className={styles.avatarPlaceholder}>
+                    {mainParticipant.userName ? mainParticipant.userName.charAt(0).toUpperCase() : ''}
+                  </div>
                   <span>{mainParticipant.userName}</span>
                 </div>
               )}

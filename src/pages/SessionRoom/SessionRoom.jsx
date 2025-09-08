@@ -46,7 +46,8 @@ export const SessionRoom = () => {
         // 1. 서버로부터 내 고유 ID를 받으면, '나'의 정보를 '생성'합니다.
         client.on('adminStatus', ({ peerId, isAdmin }) => {
             setIsAdmin(isAdmin);
-            updateParticipant({ id: peerId, isLocal: true, userName: '나' });
+            const { userName } = location.state || {}; // Get userName from location.state
+            updateParticipant({ id: peerId, isLocal: true, userName: userName || '나' }); // Use provided userName or default to '나'
         });
 
         // 2. 내 로컬 미디어 스트림이 준비되면, '생성된 내 정보'에 스트림을 '추가(업데이트)'합니다.

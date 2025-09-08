@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Trash2, Download, Upload, Edit2 } from 'lucide-react';
+import { Search, Plus, Trash2, Download, Upload, Edit2, Users, Eye, EyeOff, Settings } from 'lucide-react';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -11,6 +11,7 @@ const UserManagement = () => {
   const [modalType, setModalType] = useState('alert');
   const [modalCallback, setModalCallback] = useState(null);
   const [currentTenantId, setCurrentTenantId] = useState(null);
+  const [showPassword, setShowPassword] = useState({});
 
   const roleOptions = [
     { value: 'manager', label: '매니저' },
@@ -56,7 +57,6 @@ const UserManagement = () => {
     }
   };
 
-  // 토큰에서 Bearer 접두사 완전 제거하는 함수
   const getCleanAuthToken = () => {
     let token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     
@@ -64,7 +64,6 @@ const UserManagement = () => {
       return null;
     }
     
-    // Bearer 접두사가 있다면 제거 (여러번 중복되어도 모두 제거)
     while (token.startsWith('Bearer ')) {
       token = token.substring(7).trim();
     }
@@ -79,7 +78,6 @@ const UserManagement = () => {
       'Content-Type': 'application/json',
     };
     
-    // 토큰이 있으면 Bearer 접두사를 한 번만 추가
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
@@ -93,7 +91,6 @@ const UserManagement = () => {
     
     setIsLoading(true);
     try {
-      // tenantId 파라미터 없이 요청 (백엔드에서 JWT로 처리)
       const queryParams = new URLSearchParams({
         ...(searchKeyword && { searchKeyword })
       });
@@ -108,10 +105,8 @@ const UserManagement = () => {
       });
 
       console.log('응답 상태:', response.status, response.statusText);
-      console.log('응답 헤더:', Object.fromEntries(response.headers.entries()));
 
       const contentType = response.headers.get('content-type');
-      console.log('Content-Type:', contentType);
 
       if (!contentType || !contentType.includes('application/json')) {
         console.error('JSON이 아닌 응답 받음. 백엔드 서버 연결 실패');
@@ -127,7 +122,6 @@ const UserManagement = () => {
         console.log('응답 데이터:', data);
         
         if (data.success) {
-          // 백엔드에서 받은 실제 tenantId를 상태에 저장
           if (data.tenantId) {
             setCurrentTenantId(data.tenantId);
           }
@@ -185,7 +179,7 @@ const UserManagement = () => {
 
     const newUser = {
       id: Date.now(),
-      tenantId: currentTenantId, // 백엔드에서 받은 실제 tenantId 사용
+      tenantId: currentTenantId,
       userId: null,
       name: '',
       email: '',
@@ -233,15 +227,6 @@ const UserManagement = () => {
     });
   };
 
-  const handleReset = () => {
-    showPopup('모든 데이터를 초기화하시겠습니까?', true, (result) => {
-      if (result) {
-        setUsers([]);
-        setSearchKeyword('');
-      }
-    });
-  };
-
   const handleUpdateUser = (index, field, value) => {
     setUsers(prev => prev.map((user, i) => {
       if (i === index) {
@@ -272,27 +257,11 @@ const UserManagement = () => {
     setUsers(prev => prev.map(user => ({ ...user, selected: checked })));
   };
 
-  const checkEmailDuplicate = async (email) => {
-    try {
-        const response = await fetch('/api/user/check-email-by-tenant', {
-        method: 'POST',
-        headers: getApiHeaders(),
-        credentials: 'include',
-        body: JSON.stringify({
-          email: email
-          // tenantId 제거 - 백엔드에서 JWT로 처리
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        return data.success && data.available;
-      }
-      return false;
-    } catch (error) {
-      console.error('이메일 중복 검사 오류:', error);
-      return false;
-    }
+  const togglePasswordVisibility = (index) => {
+    setShowPassword(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
   };
 
   const handleSave = () => {
@@ -338,7 +307,6 @@ const UserManagement = () => {
       
       const processedData = modifiedUsers.map(user => ({
         userId: user.userId,
-        // tenantId 제거 - 백엔드에서 JWT로 자동 설정
         name: user.name,
         email: user.email,
         password: user.passwordChanged === 'Y' && user.password !== '******' ? user.password : 'KEEP_EXISTING_PASSWORD',
@@ -381,103 +349,282 @@ const UserManagement = () => {
     }
   };
 
+  const selectedCount = users.filter(user => user.selected).length;
+
   return (
-    <div className="user-management" style={{ padding: '20px', backgroundColor: '#f8f9fa', minHeight: '100vh' }}>
-      <div style={{ marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333', marginBottom: '10px' }}>
-          사용자 관리
-        </h2>
-        <div style={{ fontSize: '14px', color: '#666' }}>
-          Home &gt; 사용자 관리 {currentTenantId && `(Tenant ID: ${currentTenantId})`}
+    <div className="temp-content">
+      {/* 페이지 헤더 */}
+      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <div style={{ 
+          width: '80px', 
+          height: '80px', 
+          backgroundColor: '#e3f2fd',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 20px',
+          boxShadow: '0 4px 12px rgba(0, 123, 255, 0.2)'
+        }}>
+          <Users style={{ width: '40px', height: '40px', color: '#007bff' }} />
         </div>
-        <div style={{ fontSize: '12px', color: '#999', marginTop: '5px' }}>
-          토큰 상태: {getCleanAuthToken() ? '인증됨' : '인증 필요'} | 백엔드: localhost:8080
+        <h2 style={{ marginBottom: '8px', color: '#333' }}>사용자 관리</h2>
+        <p style={{ color: '#666', marginBottom: '4px' }}>
+          Home › 사용자 관리 {currentTenantId && `(Tenant: ${currentTenantId})`}
+        </p>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          backgroundColor: '#e8f5e8',
+          padding: '4px 12px',
+          borderRadius: '20px',
+          fontSize: '12px',
+          color: '#4caf50',
+          fontWeight: '500'
+        }}>
+          <div style={{ width: '6px', height: '6px', backgroundColor: '#4caf50', borderRadius: '50%' }}></div>
+          인증됨
         </div>
       </div>
 
+      {/* 검색 및 통계 섹션 */}
       <div style={{ 
-        backgroundColor: 'white', 
-        padding: '20px', 
-        borderRadius: '8px', 
-        marginBottom: '20px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        backgroundColor: '#f8f9fa',
+        padding: '24px',
+        borderRadius: '8px',
+        marginBottom: '24px',
+        border: '1px solid #e9ecef'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <label style={{ fontWeight: '500', minWidth: '60px' }}>검색어</label>
-          <input
-            type="text"
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            placeholder="사용자명 또는 이메일로 검색"
-            style={{
-              padding: '8px 12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              width: '200px'
-            }}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            disabled={isLoading}
-          />
+        {/* 검색창 */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px', 
+          justifyContent: 'center',
+          marginBottom: '20px'
+        }}>
+          <div style={{ position: 'relative', width: '400px' }}>
+            <Search style={{ 
+              position: 'absolute', 
+              left: '12px', 
+              top: '50%', 
+              transform: 'translateY(-50%)',
+              color: '#666',
+              width: '18px',
+              height: '18px'
+            }} />
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              placeholder="사용자명 또는 이메일로 검색..."
+              style={{
+                width: '100%',
+                padding: '12px 16px 12px 45px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                backgroundColor: 'white'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#007bff'}
+              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
+              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              disabled={isLoading}
+            />
+          </div>
           <button
             onClick={handleSearch}
             disabled={isLoading}
+            className="confirm-btn"
             style={{
-              padding: '8px 16px',
-              backgroundColor: isLoading ? '#ccc' : '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
               display: 'flex',
               alignItems: 'center',
-              gap: '5px',
-              cursor: isLoading ? 'not-allowed' : 'pointer'
+              gap: '8px',
+              padding: '12px 24px',
+              fontSize: '14px',
+              fontWeight: '600'
             }}
           >
-            <Search size={16} />
-            {isLoading ? '검색중...' : '검색'}
+            {isLoading ? (
+              <div style={{
+                width: '16px',
+                height: '16px',
+                border: '2px solid rgba(255,255,255,0.3)',
+                borderTop: '2px solid white',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite'
+              }}></div>
+            ) : (
+              <Search style={{ width: '16px', height: '16px' }} />
+            )}
+            검색
           </button>
+        </div>
+
+        {/* 통계 카드 */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '16px'
+        }}>
+          <div className="placeholder-item" style={{
+            textAlign: 'center',
+            padding: '24px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            border: '1px solid #e9ecef'
+          }}>
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              backgroundColor: '#e3f2fd',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px'
+            }}>
+              <Users style={{ width: '24px', height: '24px', color: '#007bff' }} />
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#333', marginBottom: '4px' }}>
+              {users.length}
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>총 사용자</div>
+          </div>
+
+          <div className="placeholder-item" style={{
+            textAlign: 'center',
+            padding: '20px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '1px solid #e9ecef'
+          }}>
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              backgroundColor: '#e8f5e8',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px'
+            }}>
+              <span style={{ fontSize: '18px', color: '#4caf50' }}>✓</span>
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#333', marginBottom: '4px' }}>
+              {selectedCount}
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>선택됨</div>
+          </div>
         </div>
       </div>
 
+      {/* 액션 버튼 */}
       <div style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '20px'
+        gap: '12px', 
+        marginBottom: '24px',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        alignItems: 'center'
       }}>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={handleAddUser} style={buttonStyle} disabled={isLoading}>
-            <Plus size={16} />
-            행추가
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleAddUser}
+            disabled={isLoading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 20px',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s ease',
+              opacity: isLoading ? 0.6 : 1
+            }}
+          >
+            <Plus style={{ width: '16px', height: '16px' }} />
+            사용자 추가
           </button>
-          <button onClick={() => handleDeleteUser(users.findIndex(u => u.selected))} style={buttonStyle} disabled={isLoading}>
-            <Trash2 size={16} />
-            행삭제
-          </button>
-          <button onClick={handleDeleteSelected} style={buttonStyle} disabled={isLoading}>
-            <Trash2 size={16} />
-            다중삭제
-          </button>
-          <button onClick={handleReset} style={buttonStyle} disabled={isLoading}>
-            초기화
+
+          <button
+            onClick={handleDeleteSelected}
+            disabled={isLoading || selectedCount === 0}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 20px',
+              backgroundColor: selectedCount > 0 ? '#dc3545' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: (isLoading || selectedCount === 0) ? 'not-allowed' : 'pointer',
+              transition: 'all 0.3s ease',
+              opacity: (isLoading || selectedCount === 0) ? 0.6 : 1
+            }}
+          >
+            <Trash2 style={{ width: '16px', height: '16px' }} />
+            삭제하기 ({selectedCount})
           </button>
         </div>
+
+        <button
+          onClick={handleSave}
+          disabled={isLoading}
+          className="confirm-btn"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 24px',
+            fontSize: '14px',
+            fontWeight: '600'
+          }}
+        >
+          {isLoading ? (
+            <div style={{
+              width: '16px',
+              height: '16px',
+              border: '2px solid rgba(255,255,255,0.3)',
+              borderTop: '2px solid white',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+          ) : (
+            <Download style={{ width: '16px', height: '16px' }} />
+          )}
+          저장
+        </button>
       </div>
 
-      <div style={{ 
-        backgroundColor: 'white', 
+      {/* 테이블 */}
+      <div style={{
+        backgroundColor: 'white',
         borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        overflow: 'hidden'
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        overflow: 'hidden',
+        border: '1px solid #e9ecef'
       }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead style={{ backgroundColor: '#f8f9fa' }}>
-            <tr>
+          <thead>
+            <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
               <th style={headerStyle}>
                 <input
                   type="checkbox"
                   onChange={(e) => handleSelectAll(e.target.checked)}
                   disabled={isLoading}
+                  style={{ width: '16px', height: '16px' }}
                 />
               </th>
               <th style={headerStyle}>순번</th>
@@ -485,33 +632,80 @@ const UserManagement = () => {
               <th style={headerStyle}>이메일</th>
               <th style={headerStyle}>비밀번호</th>
               <th style={headerStyle}>역할</th>
+              <th style={headerStyle}>액션</th>
             </tr>
           </thead>
           <tbody>
             {users.length === 0 ? (
               <tr>
-                <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                  {isLoading ? '로딩 중...' : '데이터가 없습니다.'}
+                <td colSpan="7" style={{ 
+                  padding: '60px 20px', 
+                  textAlign: 'center',
+                  color: '#666',
+                  fontSize: '16px'
+                }}>
+                  {isLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                      <div style={{
+                        width: '32px',
+                        height: '32px',
+                        border: '3px solid #f3f3f3',
+                        borderTop: '3px solid #007bff',
+                        borderRadius: '50%',
+                        animation: 'spin 1s linear infinite'
+                      }}></div>
+                      <span>로딩 중...</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+                      <Users style={{ width: '48px', height: '48px', color: '#ccc' }} />
+                      <div>
+                        <div style={{ fontSize: '18px', marginBottom: '8px' }}>데이터가 없습니다</div>
+                        <div style={{ fontSize: '14px', color: '#999' }}>새로운 사용자를 추가해보세요</div>
+                      </div>
+                    </div>
+                  )}
                 </td>
               </tr>
             ) : (
               users.map((user, index) => (
-                <tr key={user.id || index} style={{ borderBottom: '1px solid #eee' }}>
+                <tr key={user.id || index} style={{ 
+                  borderBottom: '1px solid #e9ecef',
+                  backgroundColor: user.selected ? '#f8f9fa' : 'white',
+                  transition: 'background-color 0.2s'
+                }}>
                   <td style={cellStyle}>
                     <input
                       type="checkbox"
                       checked={user.selected || false}
                       onChange={(e) => handleSelectUser(index, e.target.checked)}
                       disabled={isLoading}
+                      style={{ width: '16px', height: '16px' }}
                     />
                   </td>
-                  <td style={cellStyle}>{index + 1}</td>
+                  <td style={cellStyle}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '28px',
+                      height: '28px',
+                      backgroundColor: '#e9ecef',
+                      borderRadius: '50%',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: '#495057'
+                    }}>
+                      {index + 1}
+                    </span>
+                  </td>
                   <td style={cellStyle}>
                     <input
                       type="text"
                       value={user.name || user.userName || ''}
                       onChange={(e) => handleUpdateUser(index, 'name', e.target.value)}
                       style={inputStyle}
+                      placeholder="이름을 입력하세요"
                       disabled={isLoading}
                     />
                   </td>
@@ -521,23 +715,46 @@ const UserManagement = () => {
                       value={user.email || ''}
                       onChange={(e) => handleUpdateUser(index, 'email', e.target.value)}
                       style={inputStyle}
+                      placeholder="이메일을 입력하세요"
                       disabled={isLoading}
                     />
                   </td>
                   <td style={cellStyle}>
-                    <input
-                      type="password"
-                      value={user.password || ''}
-                      onChange={(e) => handleUpdateUser(index, 'password', e.target.value)}
-                      onClick={(e) => {
-                        if (e.target.value === '******') {
-                          handleUpdateUser(index, 'password', '');
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showPassword[index] ? "text" : "password"}
+                        value={user.password || ''}
+                        onChange={(e) => handleUpdateUser(index, 'password', e.target.value)}
+                        onClick={(e) => {
+                          if (e.target.value === '******') {
+                            handleUpdateUser(index, 'password', '');
+                          }
+                        }}
+                        style={{ ...inputStyle, paddingRight: '40px' }}
+                        placeholder={user.isNew ? '비밀번호 입력' : '변경시에만 입력'}
+                        disabled={isLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility(index)}
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: '4px',
+                          color: '#666'
+                        }}
+                      >
+                        {showPassword[index] ? 
+                          <EyeOff style={{ width: '16px', height: '16px' }} /> : 
+                          <Eye style={{ width: '16px', height: '16px' }} />
                         }
-                      }}
-                      placeholder={user.isNew ? '비밀번호 입력' : '변경시에만 입력'}
-                      style={inputStyle}
-                      disabled={isLoading}
-                    />
+                      </button>
+                    </div>
                   </td>
                   <td style={cellStyle}>
                     <select
@@ -554,6 +771,24 @@ const UserManagement = () => {
                       ))}
                     </select>
                   </td>
+                  <td style={{...cellStyle, textAlign: 'center'}}>
+                    <button
+                      onClick={() => handleDeleteUser(index)}
+                      disabled={isLoading}
+                      style={{
+                        padding: '8px',
+                        backgroundColor: '#fff5f5',
+                        border: '1px solid #fecaca',
+                        borderRadius: '6px',
+                        color: '#dc2626',
+                        cursor: isLoading ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s',
+                        opacity: isLoading ? 0.5 : 1
+                      }}
+                    >
+                      <Trash2 style={{ width: '16px', height: '16px' }} />
+                    </button>
+                  </td>
                 </tr>
               ))
             )}
@@ -561,57 +796,24 @@ const UserManagement = () => {
         </table>
       </div>
 
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'flex-end', 
-        gap: '10px',
-        marginTop: '20px'
-      }}>
-        <button onClick={handleSave} style={primaryButtonStyle} disabled={isLoading}>
-          {isLoading ? '저장중...' : '저장'}
-        </button>
-        <button style={buttonStyle} disabled={isLoading}>
-          취소
-        </button>
-      </div>
-
+      {/* 모달 - 기존 CSS 클래스 사용 */}
       {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '8px',
-            boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
-            minWidth: '320px',
-            maxWidth: '450px',
-            textAlign: 'center'
-          }}>
-            <div style={{
-              marginBottom: '24px',
-              fontSize: '16px',
-              lineHeight: '1.6',
-              color: '#333',
-              whiteSpace: 'pre-wrap'
-            }}>
-              {modalMessage}
-            </div>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-              <button onClick={handleModalConfirm} style={primaryButtonStyle}>
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3>{modalType === 'confirm' ? '확인 필요' : '알림'}</h3>
+            <p style={{ whiteSpace: 'pre-wrap' }}>{modalMessage}</p>
+            <div className="modal-buttons">
+              <button 
+                onClick={handleModalConfirm}
+                className="confirm-btn"
+              >
                 확인
               </button>
               {modalType === 'confirm' && (
-                <button onClick={handleModalCancel} style={buttonStyle}>
+                <button 
+                  onClick={handleModalCancel}
+                  className="cancel-btn"
+                >
                   취소
                 </button>
               )}
@@ -619,56 +821,68 @@ const UserManagement = () => {
           </div>
         </div>
       )}
+
+      {/* CSS 애니메이션 및 오버라이드 */}
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          
+          /* 상위 컨테이너 너비 제한 해제하되 적당한 최대 너비 설정 */
+          .temp-content {
+            max-width: 1400px !important;
+            margin: 0 auto !important;
+            padding: 20px !important;
+          }
+          
+          .tab-content {
+            padding: 20px !important;
+          }
+        `}
+      </style>
     </div>
   );
 };
 
-const buttonStyle = {
-  padding: '8px 16px',
-  backgroundColor: '#f8f9fa',
-  border: '1px solid #ddd',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '5px',
-  fontSize: '14px'
-};
-
-const primaryButtonStyle = {
-  ...buttonStyle,
-  backgroundColor: '#007bff',
-  color: 'white',
-  border: '1px solid #007bff'
-};
-
+// 스타일 상수들
 const headerStyle = {
-  padding: '12px 8px',
+  padding: '16px 12px',
   textAlign: 'left',
-  fontWeight: 'bold',
-  borderBottom: '2px solid #ddd',
-  backgroundColor: '#f8f9fa'
+  fontWeight: '600',
+  color: '#495057',
+  fontSize: '14px',
+  backgroundColor: '#f8f9fa',
+  borderBottom: '1px solid #dee2e6'
 };
 
 const cellStyle = {
-  padding: '8px',
-  borderBottom: '1px solid #eee'
+  padding: '12px',
+  borderBottom: '1px solid #e9ecef',
+  verticalAlign: 'middle'
 };
 
 const inputStyle = {
   width: '100%',
-  padding: '4px 8px',
-  border: '1px solid #ddd',
-  borderRadius: '3px',
-  fontSize: '14px'
+  padding: '8px 12px',
+  border: '1px solid #ced4da',
+  borderRadius: '4px',
+  fontSize: '14px',
+  outline: 'none',
+  transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
+  backgroundColor: 'white'
 };
 
 const selectStyle = {
   width: '100%',
-  padding: '4px 8px',
-  border: '1px solid #ddd',
-  borderRadius: '3px',
-  fontSize: '14px'
+  padding: '8px 12px',
+  border: '1px solid #ced4da',
+  borderRadius: '4px',
+  fontSize: '14px',
+  outline: 'none',
+  transition: 'border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out',
+  backgroundColor: 'white'
 };
 
 export default UserManagement;

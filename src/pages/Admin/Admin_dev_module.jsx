@@ -122,7 +122,9 @@ const AdminLayout = ({ children }) => {
 
       {/* Main Content with top padding */}
       <div style={{
-        paddingTop: '80px' // Fixed header height + margin
+        paddingTop: '96px',   // 헤더 높이만큼 공간 확보
+        minHeight: '100vh',
+        boxSizing: 'border-box'
       }}>
         {children}
       </div>
@@ -133,28 +135,38 @@ const AdminLayout = ({ children }) => {
 const EnhancedModuleAnalyticsDashboard = () => {
   const [modules, setModules] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Mock data with proper Korean text
-  const mockModules = [
-    { moduleId: '1', code: 'CHAT', name: '실시간 채팅', description: '실시간 채팅 모듈', price: '15000', icon: '💬', category: '커뮤니케이션', status: 'active' },
-    { moduleId: '2', code: 'VIDEO', name: '화상회의', description: '화상회의 모듈', price: '50000', icon: '📹', category: '미디어', status: 'active' },
-    { moduleId: '3', code: 'CANVAS', name: '화이트보드', description: '공유 화이트보드', price: '25000', icon: '🎨', category: '교육도구', status: 'active' },
-    { moduleId: '4', code: 'QUIZ', name: '퀴즈 시스템', description: '실시간 퀴즈', price: '30000', icon: '❓', category: '교육도구', status: 'inactive' },
-    { moduleId: '5', code: 'FACEAI', name: 'AI 얼굴인식', description: 'AI 얼굴인식 모듈', price: '80000', icon: '🤖', category: 'AI 도구', status: 'active' },
-    { moduleId: '6', code: 'PARTICIPANTS', name: '참석자 관리', description: '참석자 관리 시스템', price: '20000', icon: '👥', category: '관리도구', status: 'active' },
-    { moduleId: '7', code: 'SCREEN', name: '화면 공유', description: '화면 공유 모듈', price: '35000', icon: '🖥️', category: '미디어', status: 'active' },
-    { moduleId: '8', code: 'ATTENDANCE', name: '출석 체크', description: '자동 출석 체크', price: '0', icon: '✅', category: '관리도구', status: 'active' },
-    { moduleId: '9', code: 'CAMERA', name: '카메라 제어', description: '카메라 제어 모듈', price: '40000', icon: '📷', category: '미디어', status: 'maintenance' },
-    { moduleId: '10', code: 'MIC', name: '마이크 관리', description: '마이크 관리 시스템', price: '0', icon: '🎤', category: '미디어', status: 'active' },
-    { moduleId: '11', code: 'ANALYTICS', name: '데이터 분석', description: '실시간 데이터 분석', price: '60000', icon: '📊', category: 'AI 도구', status: 'beta' },
-    { moduleId: '12', code: 'SECURITY', name: '보안 모듈', description: '고급 보안 기능', price: '45000', icon: '🛡️', category: '보안', status: 'active' }
-  ];
-
+  
+  // ✅ API 호출
   const loadModuleData = async () => {
     setLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setModules(mockModules);
+      const response = await fetch('/api/marketplace/modules?pageSize=50&pageIndex=1&tenantId=default-tenant', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: sessionStorage.getItem('accessToken') || ''
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`API 요청 실패: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const list = data.moduleVoList || [];
+
+      const normalized = list.map(item => ({
+        moduleId: item.moduleId,
+        code: item.code,
+        name: item.name,
+        description: item.description,
+        price: item.price || 0,
+        icon: item.icon || '📦',
+        category: item.category || '미분류',
+        status: item.status || 'active'
+      }));
+
+      setModules(normalized);
     } catch (error) {
       console.error('모듈 데이터를 불러올 수 없습니다:', error);
     } finally {
@@ -166,6 +178,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
     loadModuleData();
   }, []);
 
+  // 📊 통계 계산
   const stats = useMemo(() => {
     const totalModules = modules.length;
     const activeModules = modules.filter(m => m.status === 'active').length;
@@ -173,6 +186,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
     const paidModules = totalModules - freeModules;
     const totalRevenue = modules.reduce((sum, m) => sum + parseFloat(m.price), 0);
     const avgPrice = paidModules > 0 ? totalRevenue / paidModules : 0;
+
     const highPriceModules = modules.filter(m => parseFloat(m.price) > 50000).length;
     const betaModules = modules.filter(m => m.status === 'beta').length;
 
@@ -188,6 +202,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
     };
   }, [modules]);
 
+  // 📊 카테고리 분포
   const categoryData = useMemo(() => {
     const categories = {};
     modules.forEach(module => {
@@ -196,6 +211,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
     return Object.entries(categories).map(([name, value]) => ({ name, value }));
   }, [modules]);
 
+  // 📊 상태 분포
   const statusData = useMemo(() => {
     const statuses = {};
     modules.forEach(module => {
@@ -213,6 +229,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
     }));
   }, [modules]);
 
+  // 📊 가격대 분포
   const priceRangeData = useMemo(() => {
     const ranges = {
       '무료': 0,
@@ -234,6 +251,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
     return Object.entries(ranges).map(([name, value]) => ({ name, value }));
   }, [modules]);
 
+  // 📊 TOP 5 고가 모듈
   const topModules = useMemo(() => {
     return [...modules]
       .filter(m => parseFloat(m.price || 0) > 0)
@@ -241,6 +259,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
       .slice(0, 5);
   }, [modules]);
 
+  // 상태 뱃지
   const getStatusBadge = (status) => {
     const statusConfig = {
       active: { text: '활성', bg: '#dcfce7', color: '#16a34a' },
@@ -269,111 +288,93 @@ const EnhancedModuleAnalyticsDashboard = () => {
     loadModuleData();
   };
 
-  // DonutChart Component
+  // 📈 DonutChart 컴포넌트 (목록형 + 스크롤)
   const DonutChart = ({ data, colors }) => {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
-  if (total === 0) return <div style={{ textAlign: 'center', color: '#64748b' }}>데이터가 없습니다</div>;
-  let cumulativePercentage = 0;
-  const radius = 80;
-  const strokeWidth = 20;
-  return (
-  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', height: '300px' }}>
-  <div style={{ position: 'relative', marginBottom: '20px' }}>
-  <svg width="200" height="200" viewBox="0 0 200 200">
-  <circle cx="100" cy="100" r={radius} fill="none" stroke="#f1f5f9" strokeWidth={strokeWidth} />
-  {data.map((item, index) => {
-  const percentage = (item.value / total) * 100;
-  const strokeDasharray = `${(percentage / 100) * 2 * Math.PI * radius} ${2 * Math.PI * radius}`;
-  const strokeDashoffset = -((cumulativePercentage / 100) * 2 * Math.PI * radius);
-  const color = colors[index % colors.length];
-  cumulativePercentage += percentage;
-  return (
-  <circle
-  key={item.name}
-  cx="100"
-  cy="100"
-  r={radius}
-  fill="none"
-  stroke={color}
-  strokeWidth={strokeWidth}
-  strokeDasharray={strokeDasharray}
-  strokeDashoffset={strokeDashoffset}
-  style={{ transition: 'all 0.5s ease', transform: 'rotate(-90deg)', transformOrigin: '100px 100px' }}
-  />
-  );
-  })}
-  </svg>
-  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
-  <div style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b' }}>{total}</div>
-  <div style={{ fontSize: '12px', color: '#64748b' }}>총 모듈</div>
-  </div>
-  </div>
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', maxHeight: '150px', overflowY: 'auto' }}>
-  {data.map((item, index) => (
-  <div key={item.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#f8fafc', borderRadius: '6px', fontSize: '13px' }}>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-  <div style={{ width: '12px', height: '12px', backgroundColor: colors[index % colors.length], borderRadius: '50%' }}></div>
-  <span style={{ color: '#374151', fontWeight: '500' }}>{item.name}</span>
-  </div>
-  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-  <span style={{ color: '#64748b', fontSize: '12px' }}>{((item.value / total) * 100).toFixed(1)}%</span>
-  <span style={{ color: '#1e293b', fontWeight: '600' }}>{item.value}</span>
-  </div>
-  </div>
-  ))}
-  </div>
-  </div>
-  );
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    if (total === 0) return <div style={{ textAlign: 'center', color: '#64748b' }}>데이터가 없습니다</div>;
+    return (
+      <div
+        className="chart-scroll"
+        style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}
+      >
+        {data.map((item, index) => (
+          <div key={item.name} style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            padding: '6px 10px',
+            backgroundColor: '#fff',
+            borderRadius: '6px',
+            border: '1px solid #f1f5f9'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{
+                width: '12px', height: '12px',
+                backgroundColor: colors[index % colors.length], 
+                borderRadius: '50%'
+              }} />
+              <span style={{ fontWeight: '600', color: '#374151' }}>{item.name}</span>
+            </div>
+            <span style={{ color: '#64748b', fontSize: '13px' }}>
+              {((item.value / total) * 100).toFixed(1)}% ({item.value})
+            </span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
+  // 📊 통계 카드
   const StatCard = ({ title, value, icon: Icon, color, loading: cardLoading }) => (
-    <div style={{
-      backgroundColor: 'white',
-      border: '1px solid #e2e8f0',
-      borderRadius: '12px',
-      padding: '24px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-      transition: 'all 0.3s ease'
-    }}>
-      {cardLoading ? (
-        <>
-          <div style={{ 
-            height: '20px', 
-            backgroundColor: '#f1f5f9', 
-            borderRadius: '4px',
-            marginBottom: '12px',
-            animation: 'pulse 2s infinite'
-          }}></div>
-          <div style={{ 
-            height: '32px', 
-            backgroundColor: '#f1f5f9', 
-            borderRadius: '4px',
-            animation: 'pulse 2s infinite'
-          }}></div>
-        </>
-      ) : (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0', fontWeight: '500' }}>{title}</p>
-            <p style={{ color: '#1e293b', fontSize: '28px', fontWeight: '700', margin: 0 }}>
-              {typeof value === 'number' && value > 1000 ? value.toLocaleString() : value}
-            </p>
-          </div>
-          <div style={{ 
-            padding: '12px', 
-            backgroundColor: color.bg, 
-            borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <Icon size={24} color={color.icon} />
-          </div>
+  <div style={{
+    backgroundColor: 'white',
+    border: '1px solid #e2e8f0',
+    borderRadius: '12px',
+    padding: '24px',
+    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    transition: 'all 0.3s ease'
+  }}>
+    {cardLoading ? (
+      <>
+        <div style={{
+          height: '20px',
+          backgroundColor: '#f1f5f9',
+          borderRadius: '4px',
+          marginBottom: '12px',
+          animation: 'pulse 2s infinite'
+        }} />
+        <div style={{
+          height: '32px',
+          backgroundColor: '#f1f5f9',
+          borderRadius: '4px',
+          animation: 'pulse 2s infinite'
+        }} />
+      </>
+    ) : (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 8px 0', fontWeight: '500' }}>{title}</p>
+          <p style={{ color: '#1e293b', fontSize: '28px', fontWeight: '700', margin: 0 }}>
+            {typeof value === 'number' && value > 1000 ? value.toLocaleString() : value}
+          </p>
         </div>
-      )}
-    </div>
-  );
+        <div style={{
+          padding: '12px',
+          backgroundColor: color.bg,
+          borderRadius: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <Icon size={24} color={color.icon} />
+        </div>
+      </div>
+    )}
+  </div>
+);
 
+
+  // 📊 차트 카드
   const ChartCard = ({ title, children, icon: Icon }) => (
     <div style={{
       backgroundColor: 'white',
@@ -445,7 +446,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
-                backgroundColor: '#9333ea',
+                backgroundColor: 'rgb(59, 130, 246)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -464,10 +465,10 @@ const EnhancedModuleAnalyticsDashboard = () => {
             </button>
           </div>
 
-          {/* Stats Cards */}
+          {/* Stats Cards - 3열 고정 */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
             gap: '20px',
             marginBottom: '32px'
           }}>
@@ -570,7 +571,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
                   }}></div>
                 </div>
               ) : (
-                <div style={{ height: '250px', padding: '10px 0' }}>
+                <div className="chart-scroll" style={{ padding: '10px 0' }}>
                   {statusData.map((item, index) => (
                     <div key={item.name} style={{
                       display: 'flex',
@@ -644,7 +645,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
                   }}></div>
                 </div>
               ) : (
-                <div style={{ height: '250px', padding: '10px 0' }}>
+                <div className="chart-scroll" style={{ padding: '10px 0' }}>
                   {priceRangeData.map((item, index) => (
                     <div key={item.name} style={{
                       display: 'flex',
@@ -696,7 +697,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
             </ChartCard>
           </div>
 
-          {/* Top Modules Table */}
+          {/* Top Modules Table (스크롤) */}
           <div style={{
             display: 'grid',
             gridTemplateColumns: '1fr',
@@ -704,11 +705,7 @@ const EnhancedModuleAnalyticsDashboard = () => {
           }}>
             <ChartCard title="고가 모듈 TOP 5" icon={Award}>
               {loading ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px'
-                }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   {Array(5).fill(0).map((_, i) => (
                     <div key={i} style={{
                       height: '70px',
@@ -720,101 +717,106 @@ const EnhancedModuleAnalyticsDashboard = () => {
                 </div>
               ) : (
                 <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px'
+                  maxHeight: '320px',
+                  overflowY: 'auto',
+                  paddingRight: '8px',
+                  scrollbarWidth: 'thin'
                 }}>
-                  {topModules.map((module, index) => (
-                    <div key={module.moduleId} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '16px',
-                      padding: '20px',
-                      backgroundColor: '#f8fafc',
-                      borderRadius: '12px',
-                      border: '1px solid #e2e8f0',
-                      transition: 'all 0.2s ease'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f1f5f9';
-                      e.currentTarget.style.transform = 'translateY(-1px)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}>
-                      <div style={{
-                        fontSize: '14px',
-                        fontWeight: '700',
-                        color: '#f59e0b',
-                        backgroundColor: '#fef3c7',
-                        borderRadius: '8px',
-                        padding: '6px 12px',
-                        minWidth: '40px',
-                        textAlign: 'center'
-                      }}>
-                        #{index + 1}
-                      </div>
-                      <div style={{
-                        fontSize: '24px',
-                        width: '48px',
-                        height: '48px',
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    {topModules.map((module, index) => (
+                      <div key={module.moduleId} style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: 'white',
+                        gap: '16px',
+                        padding: '20px',
+                        backgroundColor: '#f8fafc',
                         borderRadius: '12px',
-                        border: '1px solid #e2e8f0'
+                        border: '1px solid #e2e8f0',
+                        transition: 'all 0.2s ease'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f1f5f9';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
                       }}>
-                        {module.icon}
-                      </div>
-                      <div style={{ flex: 1 }}>
                         <div style={{
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          color: '#1e293b',
-                          marginBottom: '4px'
+                          fontSize: '14px',
+                          fontWeight: '700',
+                          color: '#f59e0b',
+                          backgroundColor: '#fef3c7',
+                          borderRadius: '8px',
+                          padding: '6px 12px',
+                          minWidth: '40px',
+                          textAlign: 'center'
                         }}>
-                          {module.name}
+                          #{index + 1}
                         </div>
                         <div style={{
-                          fontSize: '13px',
-                          color: '#64748b',
+                          fontSize: '24px',
+                          width: '48px',
+                          height: '48px',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          justifyContent: 'center',
+                          backgroundColor: 'white',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0'
                         }}>
-                          <span>{module.category}</span>
-                          <span>•</span>
-                          <span>{module.description}</span>
+                          {module.icon}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            color: '#1e293b',
+                            marginBottom: '4px'
+                          }}>
+                            {module.name}
+                          </div>
+                          <div style={{
+                            fontSize: '13px',
+                            color: '#64748b',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            <span>{module.category}</span>
+                            <span>•</span>
+                            <span>{module.description}</span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {getStatusBadge(module.status)}
+                          <div style={{
+                            fontSize: '16px',
+                            fontWeight: '700',
+                            color: parseFloat(module.price) === 0 ? '#16a34a' : '#1e40af',
+                            textAlign: 'right'
+                          }}>
+                            {parseFloat(module.price) === 0 ? '무료' : `₩${parseInt(module.price).toLocaleString()}`}
+                          </div>
                         </div>
                       </div>
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px'
-                      }}>
-                        {getStatusBadge(module.status)}
-                        <div style={{
-                          fontSize: '16px',
-                          fontWeight: '700',
-                          color: parseFloat(module.price) === 0 ? '#16a34a' : '#1e40af',
-                          textAlign: 'right'
-                        }}>
-                          {parseFloat(module.price) === 0 ? '무료' : `₩${parseInt(module.price).toLocaleString()}`}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               )}
             </ChartCard>
           </div>
+
         </main>
 
-        <style jsx>{`
+        {/* ✅ style jsx -> style 교체 + 스크롤 공통 클래스 정의 */}
+        <style>{`
           @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
@@ -823,6 +825,15 @@ const EnhancedModuleAnalyticsDashboard = () => {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
           }
+          .chart-scroll {
+            max-height: 260px;
+            overflow-y: auto;
+            padding-right: 8px;
+            scrollbar-width: thin;
+          }
+          .chart-scroll::-webkit-scrollbar { width: 8px; }
+          .chart-scroll::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 8px; }
+          .chart-scroll::-webkit-scrollbar-track { background: transparent; }
         `}</style>
       </div>
     </AdminLayout>

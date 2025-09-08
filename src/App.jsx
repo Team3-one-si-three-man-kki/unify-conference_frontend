@@ -31,7 +31,8 @@ function App() {
         <Route path="/waiting/:roomId" element={<WaitingRoom />} />
         <Route path="/session/:roomId" element={<SessionRoom />} />
         {/* 메인페이지는 /main 경로로 변경 */}
-        <Route path="/main" element={<Main />} />
+         {/* 기본 경로 - 사용자 관리 페이지로 바로 이동 */}
+        <Route index element={<Main />} />
 
         <Route path="/AdminDevLogin" element={<AdminDevLogin />} />
 
@@ -54,8 +55,7 @@ function App() {
 
         
         <Route path="/" element={<TenantDashboard />}>
-          {/* 기본 경로 - 사용자 관리 페이지로 바로 이동 */}
-          <Route index element={<UserManagementDashboard />} />
+         
           
           {/* 각 페이지들 */}
           <Route path="users" element={<UserManagementDashboard />} />

@@ -1,19 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import './AttendanceModule.css';
+import { Calendar, Search, RotateCcw, Download, ArrowLeft, RefreshCw, Users, Clock, UserCheck, UserX } from 'lucide-react';
 
 const AttendanceModule = () => {
-  // State 관리
+  // 상태 관리
+  const [sessionList, setSessionList] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
+  const [attendanceDetails, setAttendanceDetails] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [currentView, setCurrentView] = useState('sessionList');
-  const [allAttendanceData, setAllAttendanceData] = useState([]);
-  const [sessionSummaryList, setSessionSummaryList] = useState([]);
-  const [attendanceList, setAttendanceList] = useState([]);
-  const [selectedSession, setSelectedSession] = useState({ id: '', name: '' });
   
-  // 검색 필터 상태
-  const [searchFilters, setSearchFilters] = useState({
-    name: '',
-    email: '',
-    joinTime: '',
+  // 검색 조건 상태
+  const [searchParams, setSearchParams] = useState({
+    scName: '',
+    scEmail: '',
+    scJoinTime: '',
+    scSessionId: '',
+    scTenantId: new URLSearchParams(window.location.search).get('tenant') || '',
+    pageSize: 9999,
+    pageIndex: 1,
     sortOrder: 'DESC'
   });
 
@@ -25,98 +29,72 @@ const AttendanceModule = () => {
     avgMinutes: 0
   });
 
-  // 모달 상태
-  const [modal, setModal] = useState({
-    show: false,
-    message: '',
-    isConfirm: false,
-    callback: null
-  });
+  // API 기본 설정
+  const API_BASE_URL = '/api/attendance';
+  
+  // 전체 출석 데이터 저장
+  const [allAttendanceData, setAllAttendanceData] = useState([]);
 
-  const [loading, setLoading] = useState(false);
-
-  const getTenantId = useCallback(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('tenant');
+  // 커스텀 알림 함수
+  const showAlert = useCallback((message) => {
+    alert(message);
   }, []);
 
-  // 팝업 표시 함수
-  const showPopup = useCallback((message, isConfirm = false, callback = null) => {
-    setModal({
-      show: true,
-      message,
-      isConfirm,
-      callback
-    });
-  }, []);
-
-  // 팝업 닫기 함수
-  const closeModal = useCallback((confirmed = false) => {
-    if (modal.callback) {
-      modal.callback(confirmed);
-    }
-    setModal({ show: false, message: '', isConfirm: false, callback: null });
-  }, [modal.callback]);
-
-  // API 호출을 위한 공통 함수
-  const makeApiCall = useCallback(async (searchOptions) => {
+  // API 호출 함수
+  const apiCall = async (endpoint, data = null, method = 'POST') => {
     try {
-      const response = await fetch('/InsWebApp/AttendanceList.pwkjson', {
-        method: 'POST',
+      const options = {
+        method,
         headers: {
           'Content-Type': 'application/json; charset=utf-8',
         },
-        body: JSON.stringify(searchOptions),
-      });
+      };
+      
+      if (data && method !== 'GET') {
+        options.body = JSON.stringify(data);
+      }
 
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
-      const data = await response.json();
       
-      let resultData = [];
-      if (data?.elData?.attendanceVoList) {
-        resultData = data.elData.attendanceVoList;
-      } else if (data?.attendanceListVo?.attendanceVoList) {
-        resultData = data.attendanceListVo.attendanceVoList;
-      }
-
-      return resultData;
+      return await response.json();
     } catch (error) {
-      throw new Error(`API 호출 실패: ${error.message}`);
+      console.error('API 호출 오류:', error);
+      throw error;
     }
-  }, []);
+  };
 
   // 세션 목록 로드
   const loadSessionList = useCallback(async () => {
-    const tenantId = getTenantId();
-    
-    if (!tenantId) {
-      showPopup('테넌트 정보를 찾을 수 없습니다. URL에 tenant 파라미터를 확인해주세요.');
+    if (!searchParams.scTenantId) {
+      showAlert("테넌트 정보를 찾을 수 없습니다. URL에 tenant 파라미터를 확인해주세요.");
       return;
     }
 
     setLoading(true);
-
     try {
-      const searchOptions = {
+      const requestData = {
         attendanceVo: {
-          scTenantId: tenantId,
-          scSessionId: '',
-          scName: '',
-          scEmail: '',
-          scJoinTime: '',
-          pageSize: '9999',
-          pageIndex: '1',
-          sortOrder: 'DESC'
+          ...searchParams,
+          scSessionId: "",
+          scName: "",
+          scEmail: "",
+          scJoinTime: ""
         }
       };
 
-      const allData = await makeApiCall(searchOptions);
+      const response = await apiCall('/list', requestData);
+      
+      let allData = [];
+      if (response && response.elData && response.elData.attendanceVoList) {
+        allData = response.elData.attendanceVoList;
+      }
 
       if (!allData || allData.length === 0) {
-        setSessionSummaryList([]);
+        setSessionList([]);
         setAllAttendanceData([]);
         return;
       }
@@ -168,53 +146,52 @@ const AttendanceModule = () => {
         };
       });
 
-      setSessionSummaryList(summaryListData);
+      setSessionList(summaryListData);
       setCurrentView('sessionList');
-
     } catch (error) {
-      showPopup(`서버에서 데이터를 가져오는데 실패했습니다: ${error.message}`);
-      setSessionSummaryList([]);
+      showAlert(`서버에서 데이터를 가져오는데 실패했습니다: ${error.message}`);
+      setSessionList([]);
     } finally {
       setLoading(false);
     }
-  }, [getTenantId, showPopup, makeApiCall]);
+  }, [searchParams.scTenantId, showAlert]);
 
   // 세션 선택 처리
-  const handleSessionClick = useCallback((session) => {
+  const handleSessionClick = (session) => {
     const selectedSessionId = session.sessionId;
-    if (!selectedSessionId) return;
+    const selectedSessionName = session.sessionName;
 
-    const selectedSessionName = session.sessionName || selectedSessionId;
-    
+    setSearchParams(prev => ({ ...prev, scSessionId: selectedSessionId }));
     setSelectedSession({ id: selectedSessionId, name: selectedSessionName });
-    
-    const sessionDetails = allAttendanceData.filter(item => 
-      (item.sessionId || 'N/A_Session') === selectedSessionId
+
+    // 선택된 세션의 출석 데이터 필터링
+    const sessionDetails = allAttendanceData.filter(
+      item => (item.sessionId || 'N/A_Session') === selectedSessionId
     );
-    
-    setAttendanceList(sessionDetails);
+
+    setAttendanceDetails(sessionDetails);
     updateStats(sessionDetails);
-    
-    // 검색 필터 초기화
-    setSearchFilters({
-      name: '',
-      email: '',
-      joinTime: '',
-      sortOrder: 'DESC'
-    });
-    
+
+    // 검색 조건 초기화
+    setSearchParams(prev => ({
+      ...prev,
+      scName: '',
+      scEmail: '',
+      scJoinTime: ''
+    }));
+
     setCurrentView('detail');
-  }, [allAttendanceData]);
+  };
 
   // 통계 업데이트
-  const updateStats = useCallback((data) => {
+  const updateStats = (data) => {
     const total = data.length;
     let active = 0;
     let totalMinutes = 0;
     let validCount = 0;
 
     data.forEach(item => {
-      if (item.status === '참여중') {
+      if (item.status === "참여중") {
         active++;
       }
       if (item.participationMinutes && !isNaN(item.participationMinutes)) {
@@ -232,100 +209,97 @@ const AttendanceModule = () => {
       leftCount: left,
       avgMinutes: avgMinutes
     });
-  }, []);
+  };
 
-  // 검색 실행
-  const handleSearch = useCallback(async () => {
-    const tenantId = getTenantId();
-    
-    if (!selectedSession.id) {
-      showPopup('세션이 선택되지 않았습니다.');
+  // 상세 검색
+  const handleDetailSearch = async () => {
+    if (!selectedSession) {
+      showAlert("세션이 선택되지 않았습니다.");
       return;
     }
 
-    if (!tenantId) {
-      showPopup('테넌트 정보를 찾을 수 없습니다.');
+    if (!searchParams.scTenantId) {
+      showAlert("테넌트 정보를 찾을 수 없습니다.");
       return;
     }
 
     setLoading(true);
-
     try {
-      const searchOptions = {
+      const requestData = {
         attendanceVo: {
-          scTenantId: tenantId,
-          scSessionId: selectedSession.id,
-          scName: searchFilters.name.trim() || '',
-          scEmail: searchFilters.email.trim() || '',
-          scJoinTime: searchFilters.joinTime || '',
-          pageSize: '9999',
-          pageIndex: '1',
-          sortOrder: searchFilters.sortOrder
+          ...searchParams,
+          scSessionId: selectedSession.id
         }
       };
 
-      const filteredData = await makeApiCall(searchOptions);
-      setAttendanceList(filteredData);
-      updateStats(filteredData);
+      const response = await apiCall('/list', requestData);
+      
+      let filteredData = [];
+      if (response && response.elData && response.elData.attendanceVoList) {
+        filteredData = response.elData.attendanceVoList;
+      }
 
+      setAttendanceDetails(filteredData);
+      updateStats(filteredData);
     } catch (error) {
-      showPopup(`검색 중 오류가 발생했습니다: ${error.message}`);
+      showAlert(`검색 중 오류가 발생했습니다: ${error.message}`);
     } finally {
       setLoading(false);
     }
-  }, [getTenantId, selectedSession.id, searchFilters, showPopup, updateStats, makeApiCall]);
+  };
 
-  // 검색 초기화
-  const handleReset = useCallback(() => {
-    setSearchFilters({
-      name: '',
-      email: '',
-      joinTime: '',
-      sortOrder: 'DESC'
-    });
+  // 검색 조건 초기화
+  const handleResetSearch = () => {
+    setSearchParams(prev => ({
+      ...prev,
+      scName: '',
+      scEmail: '',
+      scJoinTime: ''
+    }));
 
-    const sessionDetails = allAttendanceData.filter(item => 
-      (item.sessionId || 'N/A_Session') === selectedSession.id
-    );
-    setAttendanceList(sessionDetails);
-    updateStats(sessionDetails);
-    
-    showPopup('검색 조건이 초기화되었습니다.');
-  }, [allAttendanceData, selectedSession.id, updateStats, showPopup]);
+    if (selectedSession) {
+      const sessionDetails = allAttendanceData.filter(
+        item => (item.sessionId || 'N/A_Session') === selectedSession.id
+      );
+      setAttendanceDetails(sessionDetails);
+      updateStats(sessionDetails);
+    }
 
-  // 정렬 변경
-  const handleSortChange = useCallback((order) => {
-    const sortedData = [...attendanceList].sort((a, b) => {
+    showAlert("검색 조건이 초기화되었습니다.");
+  };
+
+  // 정렬 처리
+  const handleSort = (order) => {
+    const sortedData = [...attendanceDetails].sort((a, b) => {
       const timeA = new Date(a.joinTime).getTime();
       const timeB = new Date(b.joinTime).getTime();
       return order === 'ASC' ? timeA - timeB : timeB - timeA;
     });
-    
-    setAttendanceList(sortedData);
-    setSearchFilters(prev => ({ ...prev, sortOrder: order }));
-  }, [attendanceList]);
+    setAttendanceDetails(sortedData);
+  };
 
   // CSV 다운로드
-  const handleDownloadCSV = useCallback(() => {
-    if (attendanceList.length === 0) {
-      showPopup('다운로드할 데이터가 없습니다.');
+  const handleCSVDownload = async () => {
+    if (attendanceDetails.length === 0) {
+      showAlert("다운로드할 데이터가 없습니다.");
       return;
     }
 
     try {
-      let csvContent = '\ufeff'; 
+      // 브라우저에서 CSV 생성
+      let csvContent = '\ufeff'; // UTF-8 BOM
       csvContent += '번호,세션ID,참여자명,이메일,접속IP,입장시간,퇴장시간,참여시간(분),상태\n';
       
-      attendanceList.forEach((row, index) => {
-        csvContent += `${index + 1},`;
-        csvContent += `"${row.sessionId || ''}",`;
-        csvContent += `"${row.name || ''}",`;
-        csvContent += `"${row.email || ''}",`;
-        csvContent += `"${row.ipAddress || ''}",`;
-        csvContent += `"${row.joinTime || ''}",`;
-        csvContent += `"${row.leaveTime || '진행중'}",`;
-        csvContent += `"${row.participationMinutes || '-'}",`;
-        csvContent += `"${row.status || ''}"\n`;
+      attendanceDetails.forEach((row, index) => {
+        csvContent += (index + 1) + ',';
+        csvContent += '"' + (row.sessionId || '') + '",';
+        csvContent += '"' + (row.name || '') + '",';
+        csvContent += '"' + (row.email || '') + '",';
+        csvContent += '"' + (row.ipAddress || '') + '",';
+        csvContent += '"' + (row.joinTime || '') + '",';
+        csvContent += '"' + (row.leaveTime || '진행중') + '",';
+        csvContent += '"' + (row.participationMinutes || '-') + '",';
+        csvContent += '"' + (row.status || '') + '"\n';
       });
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -333,159 +307,178 @@ const AttendanceModule = () => {
       const url = URL.createObjectURL(blob);
       link.setAttribute('href', url);
 
-      const tenantId = getTenantId() || 'unknown';
-      const sessionId = selectedSession.id.replace(/[^a-zA-Z0-9]/g, '_') || '선택세션';
+      const sessionId = selectedSession?.id?.replace(/[^a-zA-Z0-9]/g, '_') || "선택세션";
       const now = new Date();
-      const dateStr = now.getFullYear() + 
-        String(now.getMonth() + 1).padStart(2, '0') + 
-        String(now.getDate()).padStart(2, '0');
-      
+      const dateStr = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0');
+      const tenantId = searchParams.scTenantId || "unknown";
       link.setAttribute('download', `출석현황_${tenantId}_${sessionId}_${dateStr}.csv`);
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
-      showPopup('CSV 파일이 다운로드되었습니다.');
+      URL.revokeObjectURL(url);
+
+      showAlert("CSV 파일이 다운로드되었습니다.");
     } catch (error) {
-      showPopup(`CSV 다운로드 중 오류가 발생했습니다: ${error.message}`);
+      showAlert(`CSV 다운로드 중 오류가 발생했습니다: ${error.message}`);
     }
-  }, [attendanceList, selectedSession.id, showPopup, getTenantId]);
+  };
 
-  // 구독 확인 (웹스퀘어의 checkAttendanceSubscription 대체)
-  const checkAttendanceSubscription = useCallback(() => {
-    try {
-      const tenantId = getTenantId();
-      if (!tenantId) return false;
-
-      const subscribedModulesKey = `subscribedModules_${tenantId}`;
-      const subscribedModules = JSON.parse(localStorage.getItem(subscribedModulesKey) || '[]');
-      return subscribedModules.includes('ATTENDANCE');
-    } catch (e) {
-      return false;
-    }
-  }, [getTenantId]);
+  // 세션 목록으로 돌아가기
+  const goBackToSessionList = () => {
+    setCurrentView('sessionList');
+    setSelectedSession(null);
+    setAttendanceDetails([]);
+    setStats({ totalCount: 0, activeCount: 0, leftCount: 0, avgMinutes: 0 });
+  };
 
   // 컴포넌트 마운트 시 세션 목록 로드
   useEffect(() => {
     loadSessionList();
   }, [loadSessionList]);
 
-  // 구독 상태에 따른 다운로드 버튼 표시 여부
-  const showDownloadButton = checkAttendanceSubscription();
-
   return (
     <div className="attendance-dashboard">
-      {/* 헤더 */}
+      {/* 페이지 타이틀 영역 */}
       <div className="page-header">
-        <h1 className="page-title">출석 관리 시스템</h1>
-        <nav className="breadcrumb">
+        <h1 className="page-title">출석 관리 대시보드</h1>
+        <div className="breadcrumb">
           <span>Home</span>
           <span>출석 관리</span>
           <span>출석현황</span>
-        </nav>
+        </div>
       </div>
 
-      {/* 세션 목록 뷰 */}
-      {currentView === 'sessionList' && (
+      {currentView === 'sessionList' ? (
+        /* 세션 목록 뷰 */
         <div className="session-list-view">
+          {/* 안내 메시지 */}
           <div className="search-box">
             <div className="search-info">
-              아래 목록에서 세션을 선택하여 상세 출석현황을 확인하세요.
+              세션 목록
             </div>
+            <p style={{ marginBottom: '15px', color: '#6c757d' }}>
+              아래 목록에서 세션을 선택하여 상세 출석현황을 확인하세요.
+            </p>
             <div className="search-actions">
-              <button 
-                className="btn btn-primary"
+              <button
                 onClick={loadSessionList}
                 disabled={loading}
+                className="btn btn-primary"
               >
-                {loading ? '로딩 중...' : '세션 목록 새로고침'}
+                <RefreshCw size={16} style={{ marginRight: '5px' }} />
+                새로고침
               </button>
             </div>
           </div>
 
+          {/* 세션 목록 테이블 */}
           <div className="content-box">
-            <div className="table-container">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>세션명</th>
-                    <th>주관부서</th>
-                    <th>시작시간</th>
-                    <th>총 참여자 수</th>
-                    <th>평균 참여시간(분)</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessionSummaryList.length === 0 ? (
+            {loading ? (
+              <div className="loading">
+                데이터를 불러오는 중...
+              </div>
+            ) : (
+              <div className="table-container">
+                <table className="data-table">
+                  <thead>
                     <tr>
-                      <td colSpan="5" className="no-data">
-                        {loading ? '로딩 중...' : '세션 데이터가 없습니다.'}
-                      </td>
+                      <th>세션명</th>
+                      <th>주관부서</th>
+                      <th>시작시간</th>
+                      <th className="text-center">참여자 수</th>
+                      <th className="text-center">평균 참여시간(분)</th>
                     </tr>
-                  ) : (
-                    sessionSummaryList.map((session, index) => (
-                      <tr 
+                  </thead>
+                  <tbody>
+                    {sessionList.map((session, index) => (
+                      <tr
                         key={index}
                         onClick={() => handleSessionClick(session)}
                         className="clickable"
                       >
-                        <td className="session-name">{session.sessionName}</td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Calendar size={16} style={{ color: '#3674B5' }} />
+                            <span className="session-name">{session.sessionName}</span>
+                          </div>
+                        </td>
                         <td>{session.sessionDept}</td>
                         <td>{session.sessionStartTime}</td>
-                        <td className="text-center">{session.participantCount}</td>
-                        <td className="text-center">{session.avgMinutes}</td>
+                        <td className="text-center">
+                          <span style={{ 
+                            background: '#e8f5e8', 
+                            color: '#2d7d32', 
+                            padding: '4px 8px', 
+                            borderRadius: '12px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600'
+                          }}>
+                            {session.participantCount}명
+                          </span>
+                        </td>
+                        <td className="text-center">
+                          <span style={{ 
+                            background: '#f3e5f5', 
+                            color: '#7b1fa2', 
+                            padding: '4px 8px', 
+                            borderRadius: '12px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600'
+                          }}>
+                            {session.avgMinutes}분
+                          </span>
+                        </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+                {sessionList.length === 0 && !loading && (
+                  <div className="no-data">
+                    등록된 세션이 없습니다.
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      )}
-
-      {/* 상세 뷰 */}
-      {currentView === 'detail' && (
+      ) : (
+        /* 세션 상세 뷰 */
         <div className="detail-view">
-          {/* 상세 뷰 헤더 */}
+          {/* 뒤로가기 및 세션 정보 */}
           <div className="detail-header">
-            <button 
+            <button
+              onClick={goBackToSessionList}
               className="btn btn-back"
-              onClick={() => setCurrentView('sessionList')}
             >
-              ← 세션 목록으로
+              <ArrowLeft size={16} style={{ marginRight: '5px' }} />
+              세션 목록으로
             </button>
             <div className="selected-session">
-              <span>선택된 세션:</span>
-              <span className="session-name">{selectedSession.name}</span>
+              <Calendar size={20} style={{ color: '#3674B5' }} />
+              <span className="session-name">{selectedSession?.name}</span>
             </div>
           </div>
 
-          {/* 검색 영역 */}
+          {/* 검색 조건 */}
           <div className="search-box">
+            <div className="search-info">검색 조건</div>
             <div className="search-fields">
               <div className="field">
                 <label>참여자명</label>
                 <input
                   type="text"
-                  value={searchFilters.name}
-                  onChange={(e) => setSearchFilters(prev => ({
-                    ...prev,
-                    name: e.target.value
-                  }))}
+                  value={searchParams.scName}
+                  onChange={(e) => setSearchParams(prev => ({ ...prev, scName: e.target.value }))}
                   placeholder="참여자명으로 검색"
                 />
               </div>
               <div className="field">
                 <label>이메일</label>
                 <input
-                  type="text"
-                  value={searchFilters.email}
-                  onChange={(e) => setSearchFilters(prev => ({
-                    ...prev,
-                    email: e.target.value
-                  }))}
+                  type="email"
+                  value={searchParams.scEmail}
+                  onChange={(e) => setSearchParams(prev => ({ ...prev, scEmail: e.target.value }))}
                   placeholder="이메일로 검색"
                 />
               </div>
@@ -493,26 +486,25 @@ const AttendanceModule = () => {
                 <label>입장일시</label>
                 <input
                   type="date"
-                  value={searchFilters.joinTime}
-                  onChange={(e) => setSearchFilters(prev => ({
-                    ...prev,
-                    joinTime: e.target.value
-                  }))}
+                  value={searchParams.scJoinTime}
+                  onChange={(e) => setSearchParams(prev => ({ ...prev, scJoinTime: e.target.value }))}
                 />
               </div>
             </div>
             <div className="search-actions">
-              <button 
-                className="btn btn-primary"
-                onClick={handleSearch}
+              <button
+                onClick={handleDetailSearch}
                 disabled={loading}
+                className="btn btn-primary"
               >
+                <Search size={16} style={{ marginRight: '5px' }} />
                 검색
               </button>
-              <button 
+              <button
+                onClick={handleResetSearch}
                 className="btn btn-secondary"
-                onClick={handleReset}
               >
+                <RotateCcw size={16} style={{ marginRight: '5px' }} />
                 초기화
               </button>
             </div>
@@ -521,45 +513,64 @@ const AttendanceModule = () => {
           {/* 통계 카드 */}
           <div className="stats-container">
             <div className="stat-card total">
-              <div className="stat-number">{stats.totalCount}</div>
-              <div className="stat-label">총 참여자</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <span className="stat-number">{stats.totalCount}</span>
+                  <div className="stat-label">총 참여자</div>
+                </div>
+                <Users size={24} style={{ color: '#3674B5', opacity: 0.7 }} />
+              </div>
             </div>
             <div className="stat-card active">
-              <div className="stat-number">{stats.activeCount}</div>
-              <div className="stat-label">현재 참여중</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <span className="stat-number">{stats.activeCount}</span>
+                  <div className="stat-label">현재 참여중</div>
+                </div>
+                <UserCheck size={24} style={{ color: '#28a745', opacity: 0.7 }} />
+              </div>
             </div>
             <div className="stat-card left">
-              <div className="stat-number">{stats.leftCount}</div>
-              <div className="stat-label">퇴장완료</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <span className="stat-number">{stats.leftCount}</span>
+                  <div className="stat-label">퇴장완료</div>
+                </div>
+                <UserX size={24} style={{ color: '#dc3545', opacity: 0.7 }} />
+              </div>
             </div>
             <div className="stat-card avg">
-              <div className="stat-number">{stats.avgMinutes}</div>
-              <div className="stat-label">평균 참여시간(분)</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <span className="stat-number">{stats.avgMinutes}</span>
+                  <div className="stat-label">평균 참여시간(분)</div>
+                </div>
+                <Clock size={24} style={{ color: '#6f42c1', opacity: 0.7 }} />
+              </div>
             </div>
           </div>
 
-          {/* 액션 버튼 */}
+          {/* 버튼 그룹 */}
           <div className="action-buttons">
             <button
+              onClick={() => handleSort('DESC')}
               className="btn btn-secondary"
-              onClick={() => handleSortChange('DESC')}
             >
               최신순
             </button>
             <button
+              onClick={() => handleSort('ASC')}
               className="btn btn-secondary"
-              onClick={() => handleSortChange('ASC')}
             >
               오래된순
             </button>
-            {showDownloadButton && (
-              <button
-                className="btn btn-primary"
-                onClick={handleDownloadCSV}
-              >
-                CSV 다운로드
-              </button>
-            )}
+            <button
+              onClick={handleCSVDownload}
+              className="btn btn-primary"
+            >
+              <Download size={16} style={{ marginRight: '5px' }} />
+              CSV 다운로드
+            </button>
           </div>
 
           {/* 출석 목록 테이블 */}
@@ -568,76 +579,84 @@ const AttendanceModule = () => {
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>번호</th>
-                    <th>세션ID</th>
+                    <th className="text-center">번호</th>
+                    <th className="text-center">세션ID</th>
                     <th>참여자명</th>
                     <th>이메일</th>
-                    <th>접속IP</th>
-                    <th>입장시간</th>
-                    <th>퇴장시간</th>
-                    <th>참여시간(분)</th>
-                    <th>상태</th>
+                    <th className="text-center">접속IP</th>
+                    <th className="text-center">입장시간</th>
+                    <th className="text-center">퇴장시간</th>
+                    <th className="text-center">참여시간(분)</th>
+                    <th className="text-center">상태</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {attendanceList.length === 0 ? (
-                    <tr>
-                      <td colSpan="9" className="no-data">
-                        {loading ? '로딩 중...' : '출석 데이터가 없습니다.'}
+                  {attendanceDetails.map((item, index) => (
+                    <tr key={index}>
+                      <td className="text-center">{index + 1}</td>
+                      <td className="text-center" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                        {item.sessionId}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ 
+                            background: '#e3f2fd', 
+                            padding: '4px', 
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}>
+                            <Users size={12} style={{ color: '#1976d2' }} />
+                          </div>
+                          <span className="participant-name">{item.name}</span>
+                        </div>
+                      </td>
+                      <td>{item.email}</td>
+                      <td className="text-center" style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                        {item.ipAddress}
+                      </td>
+                      <td className="text-center">{item.joinTime}</td>
+                      <td className="text-center">{item.leaveTime || '진행중'}</td>
+                      <td className="text-center">
+                        <span className="participation-time">{item.participationMinutes}</span>
+                      </td>
+                      <td className="text-center">
+                        <span className={`status ${item.status === '참여중' ? 'active' : 'left'}`}>
+                          {item.status === '참여중' && (
+                            <span style={{ 
+                              display: 'inline-block', 
+                              width: '6px', 
+                              height: '6px', 
+                              background: '#28a745', 
+                              borderRadius: '50%', 
+                              marginRight: '5px',
+                              animation: 'pulse 2s infinite'
+                            }}></span>
+                          )}
+                          {item.status}
+                        </span>
                       </td>
                     </tr>
-                  ) : (
-                    attendanceList.map((item, index) => (
-                      <tr key={index}>
-                        <td className="text-center">{index + 1}</td>
-                        <td className="text-center">{item.sessionId}</td>
-                        <td className="participant-name">{item.name}</td>
-                        <td>{item.email}</td>
-                        <td className="text-center">{item.ipAddress}</td>
-                        <td className="text-center">{item.joinTime}</td>
-                        <td className="text-center">{item.leaveTime || '진행중'}</td>
-                        <td className="text-center participation-time">
-                          {item.participationMinutes || '-'}
-                        </td>
-                        <td className="text-center">
-                          <span className={`status ${item.status === '참여중' ? 'active' : 'left'}`}>
-                            {item.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  ))}
                 </tbody>
               </table>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 모달 */}
-      {modal.show && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-message">{modal.message}</div>
-            <div className="modal-buttons">
-              <button 
-                className="btn btn-primary"
-                onClick={() => closeModal(true)}
-              >
-                확인
-              </button>
-              {modal.isConfirm && (
-                <button 
-                  className="btn btn-secondary"
-                  onClick={() => closeModal(false)}
-                >
-                  취소
-                </button>
+              {attendanceDetails.length === 0 && (
+                <div className="no-data">
+                  출석 데이터가 없습니다.
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.5; }
+        }
+      `}</style>
     </div>
   );
 };

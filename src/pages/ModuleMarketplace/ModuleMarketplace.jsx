@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiSearch, FiMessageCircle, FiVideo, FiEdit3, FiCheckCircle, FiUser, FiClock, FiMonitor, FiMic, FiCamera } from 'react-icons/fi';
+import { FiSearch, FiMessageCircle, FiVideo, FiEdit3, FiCheckCircle, FiUser, FiClock, FiMonitor, FiMic, FiCamera, FiList, FiGrid, FiStar, FiShoppingCart, FiDownload, FiPackage, FiUsers, FiSettings, FiZap, FiEye } from 'react-icons/fi';
 
 const ModuleMarketplace = () => {
   // 상태 관리
@@ -12,34 +12,112 @@ const ModuleMarketplace = () => {
   const [modalMessage, setModalMessage] = useState('');
   const [modalType, setModalType] = useState('alert');
   const [modalCallback, setModalCallback] = useState(null);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
 
-  const API_BASE_URL = '/api';
+  // 목업 데이터
+  const mockModules = [
+    {
+      moduleId: '1',
+      name: '실시간 채팅',
+      description: '참가자들 간의 실시간 소통을 위한 채팅 시스템입니다.',
+      category: 'meeting',
+      price: 5000,
+      rating: 4.8,
+      downloads: 1250,
+      icon: 'chat',
+      subscribed: false,
+      tags: ['실시간', '소통', '채팅']
+    },
+    {
+      moduleId: '2',
+      name: '화면 공유',
+      description: '프레젠테이션과 자료 공유를 위한 화면 공유 기능입니다.',
+      category: 'meeting',
+      price: 8000,
+      rating: 4.9,
+      downloads: 980,
+      icon: 'screen',
+      subscribed: true,
+      tags: ['화면공유', '프레젠테이션', '협업']
+    },
+    {
+      moduleId: '3',
+      name: '출석 체크',
+      description: '자동화된 출석 관리 시스템으로 참석자를 효율적으로 관리합니다.',
+      category: 'education',
+      price: 3000,
+      rating: 4.6,
+      downloads: 2100,
+      icon: 'attendance',
+      subscribed: false,
+      tags: ['출석', '관리', '자동화']
+    },
+    {
+      moduleId: '4',
+      name: '퀴즈 시스템',
+      description: '실시간 퀴즈와 투표를 통한 참여형 교육 도구입니다.',
+      category: 'education',
+      price: 6000,
+      rating: 4.7,
+      downloads: 850,
+      icon: 'quiz',
+      subscribed: false,
+      tags: ['퀴즈', '교육', '참여']
+    },
+    {
+      moduleId: '5',
+      name: '참가자 관리',
+      description: '회의 참가자의 권한과 상태를 체계적으로 관리합니다.',
+      category: 'management',
+      price: 7000,
+      rating: 4.5,
+      downloads: 1100,
+      icon: 'users',
+      subscribed: true,
+      tags: ['관리', '권한', '참가자']
+    },
+    {
+      moduleId: '6',
+      name: 'AI 얼굴 인식',
+      description: 'AI 기반 얼굴 인식으로 참석자 확인과 집중도를 측정합니다.',
+      category: 'education',
+      price: 12000,
+      rating: 4.9,
+      downloads: 650,
+      icon: 'ai',
+      subscribed: false,
+      tags: ['AI', '얼굴인식', '분석']
+    }
+  ];
 
-  // 아이콘 매핑
+  // 아이콘 컴포넌트 매핑
   const iconComponents = {
     chat: <FiMessageCircle size={24} />,
-    video: <FiVideo size={24} />,
-    canvas: <FiEdit3 size={24} />,
-    attendance: <FiCheckCircle size={24} />,
-    drowsy: <FiUser size={24} />,
-    absent: <FiClock size={24} />,
     screen: <FiMonitor size={24} />,
-    mic: <FiMic size={24} />,
-    camera: <FiCamera size={24} />
+    attendance: <FiCheckCircle size={24} />,
+    quiz: <FiZap size={24} />,
+    users: <FiUsers size={24} />,
+    ai: <FiPackage size={24} />
   };
 
   // 아이콘 스타일 매핑
   const iconStyles = {
     chat: { backgroundColor: '#e0e7ff', color: '#3674B5' },
-    video: { backgroundColor: '#fce7f3', color: '#be185d' },
-    canvas: { backgroundColor: '#ecfdf5', color: '#059669' },
-    attendance: { backgroundColor: '#fef3c7', color: '#d97706' },
-    drowsy: { backgroundColor: '#fce7f3', color: '#db2777' },
-    absent: { backgroundColor: '#fffbeb', color: '#d97706' },
     screen: { backgroundColor: '#f0f9ff', color: '#0369a1' },
-    mic: { backgroundColor: '#fffbeb', color: '#d97706' },
-    camera: { backgroundColor: '#fef2f2', color: '#dc2626' }
+    attendance: { backgroundColor: '#fef3c7', color: '#d97706' },
+    quiz: { backgroundColor: '#ecfdf5', color: '#059669' },
+    users: { backgroundColor: '#fce7f3', color: '#be185d' },
+    ai: { backgroundColor: '#fef2f2', color: '#dc2626' }
   };
+
+  useEffect(() => {
+    // 목업 데이터 로드
+    setTimeout(() => {
+      setModules(mockModules);
+      setIsLoading(false);
+    }, 500);
+    setIsLoading(true);
+  }, []);
 
   // 필터링 및 검색
   useEffect(() => {
@@ -53,8 +131,9 @@ const ModuleMarketplace = () => {
     // 검색 키워드 필터
     if (searchKeyword.trim()) {
       filtered = filtered.filter(module => 
-        module.name && module.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
-        (module.description && module.description.toLowerCase().includes(searchKeyword.toLowerCase()))
+        module.name.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        module.description.toLowerCase().includes(searchKeyword.toLowerCase()) ||
+        module.tags.some(tag => tag.toLowerCase().includes(searchKeyword.toLowerCase()))
       );
     }
 
@@ -69,855 +148,568 @@ const ModuleMarketplace = () => {
     setShowModal(true);
   };
 
-  // 모달 확인 처리
-  const handleModalConfirm = () => {
-    setShowModal(false);
-    if (modalCallback) {
-      modalCallback(true);
-    }
-  };
-
-  // 모달 취소 처리
-  const handleModalCancel = () => {
-    setShowModal(false);
-    if (modalCallback) {
-      modalCallback(false);
-    }
-  };
-
-  // URL에서 tenant 파라미터 가져오기
-  const getTenantId = () => {
-    const params = new URLSearchParams(window.location.search);
-    const tenantParam = params.get('tenant');
-    
-    // URL 파라미터가 있으면 우선 사용
-    if (tenantParam && tenantParam.trim() !== '' && tenantParam.match(/^\d+$/)) {
-      return tenantParam;
-    }
-    
-    // JWT 토큰에서 tenantId 추출 (가장 중요!)
-    const token = getAuthToken();
-    if (token) {
-      try {
-        // Bearer 제거하고 토큰만 추출
-        const cleanToken = token.replace('Bearer ', '');
-        const payload = JSON.parse(atob(cleanToken.split('.')[1]));
-        if (payload.tenantId) {
-          console.log('JWT에서 추출한 tenantId:', payload.tenantId);
-          return String(payload.tenantId);
-        }
-      } catch (e) {
-        console.log('JWT 디코딩 실패:', e);
-      }
-    }
-    
-    // localStorage에서 구독 정보가 있는 tenantId 찾기
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key && key.startsWith('subscribedModules_') && key !== 'subscribedModules_default-tenant') {
-        const tenantId = key.replace('subscribedModules_', '');
-        if (tenantId && tenantId.match(/^\d+$/)) {
-          return tenantId;
-        }
-      }
-    }
-    
-    // sessionStorage에서 사용자 정보 확인
-    const userInfo = JSON.parse(sessionStorage.getItem('userInfo') || '{}');
-    if (userInfo.tenantId) {
-      return String(userInfo.tenantId);
-    }
-    
-    const userData = JSON.parse(sessionStorage.getItem('userData') || '{}');
-    if (userData.tenantId) {
-      return String(userData.tenantId);
-    }
-    
-    // 최종 기본값
-    return "1";
-  };
-
-  // 토큰 가져오기 함수 - 모든 가능한 저장소 확인 (개선됨)
-  const getAuthToken = () => {
-    // 일반적인 토큰 저장 키들을 확인
-    const possibleTokenKeys = [
-      'token',
-      'accessToken', 
-      'authToken',
-      'jwt',
-      'jwtToken',
-      'authorization'
-    ];
-    
-    // localStorage에서 먼저 확인
-    for (const key of possibleTokenKeys) {
-      const token = localStorage.getItem(key);
-      if (token && token.trim()) {
-        console.log(`토큰을 localStorage.${key}에서 찾았습니다:`, token.substring(0, 20) + '...');
-        return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-      }
-    }
-    
-    // sessionStorage에서도 확인
-    for (const key of possibleTokenKeys) {
-      const token = sessionStorage.getItem(key);
-      if (token && token.trim()) {
-        console.log(`토큰을 sessionStorage.${key}에서 찾았습니다:`, token.substring(0, 20) + '...');
-        return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
-      }
-    }
-    
-    // 모든 storage 내용 로깅
-    console.warn('토큰을 찾을 수 없습니다.');
-    console.log('localStorage keys:', Object.keys(localStorage));
-    console.log('sessionStorage keys:', Object.keys(sessionStorage));
-    
-    return null;
-  };
-
-  // 인증 실패 처리 함수
-  const handleAuthError = (status) => {
-    if (status === 401) {
-      showPopup('로그인이 만료되었습니다. 다시 로그인해주세요.', false, () => {
-        // 토큰 정리
-        localStorage.removeItem('token');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('authToken');
-        sessionStorage.clear();
-        
-        // 로그인 페이지로 리다이렉트 (실제 로그인 페이지 경로로 수정)
-        window.location.href = '/login';
-      });
-    } else if (status === 403) {
-      showPopup('접근 권한이 없습니다. 관리자에게 문의하세요.');
-    } else {
-      showPopup('인증 오류가 발생했습니다. 다시 시도해주세요.');
-    }
-  };
-
-  // 로그인 상태 확인 함수
-  const checkLoginStatus = () => {
-    const token = getAuthToken();
-    if (!token) {
-      showPopup('로그인이 필요합니다.', false, () => {
-        window.location.href = '/login';
-      });
-      return false;
-    }
-    return true;
-  };
-
-  // 모듈 목록 로드 (Spring Boot API 호출) - 개선됨
-  const loadModuleList = async () => {
-    // 먼저 로그인 상태 확인
-    if (!checkLoginStatus()) {
-      return;
-    }
-
-    const tenantId = getTenantId();
-    setIsLoading(true);
-
-    try {
-      const apiUrl = `${API_BASE_URL}/marketplace/modules?pageSize=50&pageIndex=1&tenantId=${tenantId}`;
-      console.log('API 요청 URL:', apiUrl);
-
-      const token = getAuthToken();
-      if (!token) {
-        handleAuthError(401);
-        return;
-      }
-
-      const headers = {
-        'Content-Type': 'application/json',
-        'Authorization': token
-      };
-
-      console.log('요청 헤더:', {
-        'Content-Type': headers['Content-Type'],
-        'Authorization': token.substring(0, 20) + '...'
-      });
-      
-      const response = await fetch(apiUrl, { 
-        method: 'GET',
-        headers,
-        credentials: 'include' // 쿠키도 함께 전송
-      });
-      
-      console.log('응답 상태:', response.status);
-      console.log('응답 헤더:', Object.fromEntries(response.headers.entries()));
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('응답 데이터:', data);
-        
-        if (data.success) {
-          let moduleList = data.moduleVoList || [];
-          console.log('모듈 리스트:', moduleList);
-          
-          // 구독 상태 로드 및 모듈 데이터 처리
-          const processedModules = await processModuleList(moduleList);
-          setModules(processedModules);
-        } else {
-          throw new Error(data.error || '모듈 목록을 불러오는데 실패했습니다.');
-        }
-      } else {
-        // 인증/권한 오류 처리
-        if (response.status === 401 || response.status === 403) {
-          handleAuthError(response.status);
-          return;
-        }
-        
-        const errorText = await response.text();
-        console.error('서버 오류 응답:', errorText);
-        throw new Error(`서버 응답 오류: ${response.status}`);
-      }
-    } catch (error) {
-      console.error('모듈 목록 로드 오류:', error);
-      
-      // 네트워크 오류인지 확인
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        showPopup('서버에 연결할 수 없습니다. 네트워크 상태를 확인해주세요.');
-      } else {
-        showPopup('모듈 목록을 불러오는데 실패했습니다: ' + error.message);
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 컴포넌트 마운트 시 로그인 상태 확인 후 모듈 목록 로드
-  useEffect(() => {
-    console.log('ModuleMarketplace 컴포넌트 마운트됨');
-    
-    // 토큰 존재 여부 미리 확인
-    const token = getAuthToken();
-    if (token) {
-      console.log('토큰이 존재합니다. 모듈 목록을 로드합니다.');
-      loadModuleList();
-    } else {
-      console.warn('토큰이 없습니다. 로그인이 필요합니다.');
-      showPopup('로그인이 필요합니다.', false, () => {
-        window.location.href = '/login'; // 실제 로그인 페이지 경로로 수정
-      });
-    }
-  }, []);
-
-  // 구독된 모듈 목록 로드 (서버에서 실제 구독 상태 가져오기)
-  const loadSubscribedModules = async () => {
-    try {
-      const token = getAuthToken();
-      if (!token) {
-        return [];
-      }
-
-      const tenantId = getTenantId();
-      const subscribedUrl = `/api/modules/subscribed?tenantId=${tenantId}`;
-      
-      const response = await fetch(subscribedUrl, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          // 구독된 모듈 ID들을 배열로 반환
-          return data.subscribedModules.map(module => module.moduleId);
-        }
-      }
-      
-      return [];
-    } catch (error) {
-      console.error('구독 모듈 목록 로드 오류:', error);
-      return [];
-    }
-  };
-
-  // 모듈 데이터 처리 함수 수정 (실제 구독 상태 반영)
-  const processModuleList = async (moduleList) => {
-    // 서버에서 실제 구독 상태 가져오기
-    const subscribedModuleIds = await loadSubscribedModules();
-    
-    return moduleList.map((module, index) => {
-      const moduleCode = module.code || module.moduleId;
-      const moduleId = String(module.moduleId || module.id);
-
-      // 아이콘 설정
-      const iconList = ["chat", "video", "canvas", "attendance", "drowsy", "absent", "screen", "mic", "camera"];
-      let icon = iconList[index % iconList.length];
-      
-      // 특정 모듈 코드에 따른 아이콘 설정
-      switch (moduleCode) {
-        case 'CHAT': icon = "chat"; break;
-        case 'VIDEO': icon = "video"; break;
-        case 'CANVAS': icon = "canvas"; break;
-        case 'QUIZ': icon = "attendance"; break;
-        case 'FACEAI': icon = "drowsy"; break;
-        case 'PARTICIPANTS': icon = "absent"; break;
-        case 'ABSENT': icon = "absent"; break;
-        case 'SCREEN': icon = "screen"; break;
-        case 'MIC': icon = "mic"; break;
-        case 'CAMERA': icon = "camera"; break;
-        case 'ATTENDANCE': icon = "attendance"; break;
-        default: 
-          // 모듈 이름으로 아이콘 추정
-          if (module.name) {
-            const name = module.name.toLowerCase();
-            if (name.includes('채팅') || name.includes('chat')) icon = "chat";
-            else if (name.includes('비디오') || name.includes('video')) icon = "video";
-            else if (name.includes('캔버스') || name.includes('canvas')) icon = "canvas";
-            else if (name.includes('퀴즈') || name.includes('quiz')) icon = "attendance";
-            else if (name.includes('화면') || name.includes('screen')) icon = "screen";
-          }
-          break;
-      }
-
-      // 카테고리 설정
-      let category = 'etc';
-      switch (moduleCode) {
-        case 'VIDEO':
-        case 'CHAT':
-        case 'CANVAS':
-        case 'SCREEN':
-          category = 'meeting';
-          break;
-        case 'FACEAI':
-        case 'QUIZ':
-        case 'ATTENDANCE':
-          category = 'education';
-          break;
-        case 'PARTICIPANTS':
-        case 'ABSENT':
-        case 'MIC':
-        case 'CAMERA':
-          category = 'management';
-          break;
-        default:
-          // 모듈 이름으로 카테고리 추정
-          if (module.name) {
-            const name = module.name.toLowerCase();
-            if (name.includes('채팅') || name.includes('비디오') || name.includes('화면')) category = 'meeting';
-            else if (name.includes('퀴즈') || name.includes('교육')) category = 'education';
-            else if (name.includes('관리') || name.includes('참가자')) category = 'management';
-          }
-          break;
-      }
-
-      // 실제 구독 상태 확인 (서버에서 가져온 데이터 기준)
-      const subscribed = subscribedModuleIds.includes(moduleId);
-
-      // 가격 포맷팅
-      const price = module.price ? parseInt(module.price, 10) : 0;
-      const formattedPrice = price > 0 ? `₩${price.toLocaleString()}` : '무료';
-
-      // 평점 생성 (임시 - 추후 실제 데이터로 대체)
-      const rating = (Math.random() * 1 + 4.0).toFixed(1);
-
-      return {
-        ...module,
-        moduleId: moduleId,
-        code: moduleCode,
-        icon,
-        category,
-        subscribed,
-        price,
-        formattedPrice,
-        rating: parseFloat(rating),
-        ratingStars: generateStarRating(parseFloat(rating))
-      };
-    });
-  };
-
-  // 별점 생성
-  const generateStarRating = (rating) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-    
-    return '★'.repeat(fullStars) + (hasHalfStar ? '☆' : '') + '☆'.repeat(emptyStars) + ` ${rating}`;
-  };
-
-  // 구독 상태 업데이트 (로컬 스토리지)
-  const updateSubscriptionStatus = (moduleId, moduleCode, isSubscribed) => {
-    const tenantId = getTenantId();
-    if (!tenantId) return;
-
-    const subscribedModulesKey = `subscribedModules_${tenantId}`;
-    let subscribedModules = JSON.parse(localStorage.getItem(subscribedModulesKey) || '[]');
-
-    if (isSubscribed) {
-      if (!subscribedModules.includes(String(moduleId))) {
-        subscribedModules.push(String(moduleId));
-      }
-      if (moduleCode && !subscribedModules.includes(moduleCode)) {
-        subscribedModules.push(moduleCode);
-      }
-    } else {
-      subscribedModules = subscribedModules.filter(id => 
-        id !== String(moduleId) && id !== moduleCode && id !== moduleId
-      );
-    }
-
-    localStorage.setItem(subscribedModulesKey, JSON.stringify(subscribedModules));
-  };
-
-  // 실제 모듈 구독 API 호출 (기존 API에 맞춤)
-  const subscribeModule = async (module) => {
-    const tenantId = getTenantId();
-    if (!tenantId) {
-      showPopup('테넌트 정보가 없어 구독할 수 없습니다.');
-      return;
-    }
-
-    try {
-      const token = getAuthToken();
-      if (!token) {
-        handleAuthError(401);
-        return;
-      }
-
-      // 기존 API 구조에 맞춘 요청 데이터
-      const requestData = {
-        tenantModuleVo: {
-          moduleId: String(module.moduleId),
-          tenantId: tenantId
-        }
-      };
-
-      const subscribeUrl = `/api/modules/subscribe`;
-      console.log('구독 API 호출:', subscribeUrl, requestData);
-      
-      const subscribeResponse = await fetch(subscribeUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        credentials: 'include',
-        body: JSON.stringify(requestData)
-      });
-
-      console.log('구독 API 응답 상태:', subscribeResponse.status);
-
-      if (subscribeResponse.ok) {
-        const result = await subscribeResponse.json();
-        console.log('구독 API 응답:', result);
-        
-        if (result.success) {
-          showPopup(`${module.name} 모듈이 구독되었습니다!`);
-          
-          // 상태 업데이트
-          setModules(prev => prev.map(m => 
-            m.moduleId === module.moduleId ? { ...m, subscribed: true } : m
-          ));
-          
-          // 로컬 스토리지도 업데이트 (백업용)
-          updateSubscriptionStatus(module.moduleId, module.code, true);
-        } else {
-          showPopup(result.message || '구독 처리에 실패했습니다.');
-        }
-      } else if (subscribeResponse.status === 401 || subscribeResponse.status === 403) {
-        handleAuthError(subscribeResponse.status);
-      } else {
-        const errorText = await subscribeResponse.text();
-        console.error('구독 API 오류:', errorText);
-        throw new Error(`구독 API 오류: ${subscribeResponse.status}`);
-      }
-
-    } catch (error) {
-      console.error('구독 오류:', error);
-      showPopup(`${module.name} 모듈 구독에 실패했습니다: ${error.message}`);
-    }
-  };
-
-  // 실제 모듈 구독 해지 API 호출 (기존 API에 맞춤)
-  const unsubscribeModule = async (module) => {
-    const tenantId = getTenantId();
-    if (!tenantId) {
-      showPopup('테넌트 정보가 없어 구독을 해지할 수 없습니다.');
-      return;
-    }
-
-    try {
-      const token = getAuthToken();
-      if (!token) {
-        handleAuthError(401);
-        return;
-      }
-
-      // 기존 API 구조에 맞춘 요청 데이터
-      const requestData = {
-        tenantModuleVo: {
-          moduleId: String(module.moduleId),
-          tenantId: tenantId
-        }
-      };
-
-      const unsubscribeUrl = `/api/modules/unsubscribe`;
-      console.log('구독 해지 API 호출:', unsubscribeUrl, requestData);
-      
-      const unsubscribeResponse = await fetch(unsubscribeUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token
-        },
-        credentials: 'include',
-        body: JSON.stringify(requestData)
-      });
-
-      console.log('구독 해지 API 응답 상태:', unsubscribeResponse.status);
-
-      if (unsubscribeResponse.ok) {
-        const result = await unsubscribeResponse.json();
-        console.log('구독 해지 API 응답:', result);
-        
-        if (result.success) {
-          showPopup(`${module.name} 모듈 구독이 해지되었습니다!`);
-          
-          // 상태 업데이트
-          setModules(prev => prev.map(m => 
-            m.moduleId === module.moduleId ? { ...m, subscribed: false } : m
-          ));
-          
-          // 로컬 스토리지도 업데이트 (백업용)
-          updateSubscriptionStatus(module.moduleId, module.code, false);
-        } else {
-          showPopup(result.message || '구독 해지 처리에 실패했습니다.');
-        }
-      } else if (unsubscribeResponse.status === 401 || unsubscribeResponse.status === 403) {
-        handleAuthError(unsubscribeResponse.status);
-      } else {
-        const errorText = await unsubscribeResponse.text();
-        console.error('구독 해지 API 오류:', errorText);
-        throw new Error(`구독 해지 API 오류: ${unsubscribeResponse.status}`);
-      }
-
-    } catch (error) {
-      console.error('구독 해지 오류:', error);
-      showPopup(`${module.name} 모듈 구독 해지에 실패했습니다: ${error.message}`);
-    }
-  };
-
   // 구독 버튼 클릭 처리
   const handleSubscribeClick = (module) => {
     if (module.subscribed) {
       showPopup(`${module.name} 모듈의 구독을 해지하시겠습니까?`, true, (confirmed) => {
         if (confirmed) {
-          unsubscribeModule(module);
+          setModules(prev => prev.map(m => 
+            m.moduleId === module.moduleId ? { ...m, subscribed: false } : m
+          ));
+          showPopup(`${module.name} 모듈 구독이 해지되었습니다!`);
         }
       });
     } else {
-      subscribeModule(module);
+      setModules(prev => prev.map(m => 
+        m.moduleId === module.moduleId ? { ...m, subscribed: true } : m
+      ));
+      showPopup(`${module.name} 모듈이 구독되었습니다!`);
     }
   };
 
-  // 필터 버튼 클릭
-  const handleFilterClick = (filterType) => {
-    setActiveFilter(filterType);
+  // 별점 생성 - React Icons 사용
+  const generateStarRating = (rating) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <FiStar 
+        key={i} 
+        style={{
+          width: '16px',
+          height: '16px',
+          color: i < Math.floor(rating) ? '#fbbf24' : '#d1d5db',
+          fill: i < Math.floor(rating) ? '#fbbf24' : 'none'
+        }}
+      />
+    ));
   };
 
-  // 검색 처리
-  const handleSearch = () => {
-    // 검색은 useEffect에서 자동으로 처리됨
-    console.log('검색 키워드:', searchKeyword);
-  };
-
-  // 개발용 토큰 테스트 함수 (개발 중에만 사용, 실제 배포 시 제거)
-  const testTokenInConsole = () => {
-    console.log('=== 토큰 디버깅 정보 ===');
-    console.log('현재 토큰:', getAuthToken());
-    console.log('localStorage 전체:', { ...localStorage });
-    console.log('sessionStorage 전체:', { ...sessionStorage });
-    console.log('현재 URL:', window.location.href);
-    console.log('tenant 파라미터:', getTenantId());
-  };
-
-  // 전역에서 접근 가능하도록 (개발용)
-  if (typeof window !== 'undefined') {
-    window.testTokenInConsole = testTokenInConsole;
-  }
-
-  const paidModules = filteredModules.filter(m => m.price > 0);
-  const popularModules = filteredModules.slice(0, 4);
+  const subscribedCount = modules.filter(m => m.subscribed).length;
+  const totalPrice = modules.filter(m => m.subscribed).reduce((sum, m) => sum + m.price, 0);
 
   return (
-    <div style={{ fontFamily: '"Malgun Gothic", sans-serif', fontSize: '12px', color: '#333' }}>
+    <div className="temp-content" style={{ maxWidth: '1400px', margin: '0 auto', padding: '20px' }}>
       {/* 페이지 헤더 */}
-      <div style={{ 
-        marginTop: '17px', 
-        marginBottom: '24px', 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        paddingBottom: '12px',
-        borderBottom: '2px solid #e9ecef'
-      }}>
-        <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#2c3e50' }}>
-          모듈 구매
-        </h2>
-        <div style={{ fontSize: '12px', color: '#6c757d' }}>
-          Home &gt; 모듈 &gt; 모듈 구매
+      <div style={{ textAlign: 'center', marginBottom: '30px' }}>
+        <div style={{ 
+          width: '80px', 
+          height: '80px', 
+          backgroundColor: '#e3f2fd',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 20px',
+          boxShadow: '0 4px 12px rgba(0, 123, 255, 0.2)'
+        }}>
+          <FiShoppingCart style={{ width: '40px', height: '40px', color: '#007bff' }} />
+        </div>
+        <h2 style={{ marginBottom: '8px', color: '#333' }}>모듈 마켓플레이스</h2>
+        <p style={{ color: '#666', marginBottom: '4px' }}>
+          Home › 모듈 › 모듈 구매
+        </p>
+        <div style={{ 
+          display: 'inline-flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          backgroundColor: '#e8f5e8',
+          padding: '4px 12px',
+          borderRadius: '20px',
+          fontSize: '12px',
+          color: '#4caf50',
+          fontWeight: '500'
+        }}>
+          <div style={{ width: '6px', height: '6px', backgroundColor: '#4caf50', borderRadius: '50%' }}></div>
+          연결됨
         </div>
       </div>
 
-      {/* 메인 컨테이너 */}
-      <div style={{
-        backgroundColor: '#fff',
-        border: '1px solid #e5e7eb',
-        borderRadius: '12px',
+      {/* 검색 및 통계 섹션 */}
+      <div style={{ 
+        backgroundColor: '#f8f9fa',
         padding: '24px',
-        minHeight: 'calc(100vh - 200px)',
-        display: 'flex',
-        gap: '24px'
+        borderRadius: '8px',
+        marginBottom: '24px',
+        border: '1px solid #e9ecef'
       }}>
-        
-        {/* 좌측 섹션 - 모듈 리스트 */}
-        <div style={{ flex: '6', display: 'flex', flexDirection: 'column' }}>
-          {/* 검색 영역 */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827' }}>모듈 목록</h3>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                type="text"
-                value={searchKeyword}
-                onChange={(e) => setSearchKeyword(e.target.value)}
-                placeholder="모듈명으로 검색"
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #ddd',
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  width: '200px'
-                }}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <button
-                onClick={handleSearch}
-                style={{
-                  backgroundColor: '#3674B5',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '8px 16px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '5px'
-                }}
-              >
-                <FiSearch size={16} />
-                검색
-              </button>
-            </div>
+        {/* 검색창 */}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '12px', 
+          justifyContent: 'center',
+          marginBottom: '20px'
+        }}>
+          <div style={{ position: 'relative', width: '400px' }}>
+            <FiSearch style={{ 
+              position: 'absolute', 
+              left: '12px', 
+              top: '50%', 
+              transform: 'translateY(-50%)',
+              color: '#666',
+              width: '18px',
+              height: '18px'
+            }} />
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              placeholder="모듈명, 설명, 태그로 검색..."
+              style={{
+                width: '100%',
+                padding: '12px 16px 12px 45px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                outline: 'none',
+                transition: 'border-color 0.2s',
+                backgroundColor: 'white'
+              }}
+              disabled={isLoading}
+            />
           </div>
-
-          {/* 모듈 리스트 */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {isLoading ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                로딩 중...
-              </div>
-            ) : paidModules.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                모듈이 없습니다.
-              </div>
-            ) : (
-              paidModules.map((module, index) => (
-                <div key={module.moduleId || index} style={{
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  padding: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px'
-                }}>
-                  {/* 모듈 아이콘 */}
-                  <div style={{
-                    flexShrink: 0,
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    ...iconStyles[module.icon]
-                  }}>
-                    {iconComponents[module.icon] || iconComponents['drowsy']}
-                  </div>
-
-                  {/* 모듈 정보 */}
-                  <div style={{ flexGrow: 1 }}>
-                    <div style={{ fontWeight: '600', fontSize: '16px', color: '#1f2937' }}>
-                      {module.name || '모듈명 없음'}
-                    </div>
-                    <div style={{ fontSize: '14px', color: '#6b7280', marginTop: '4px' }}>
-                      {module.description || '설명 없음'}
-                    </div>
-                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#374151', marginTop: '8px' }}>
-                      {module.formattedPrice}
-                    </div>
-                  </div>
-
-                  {/* 모듈 액션 */}
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '14px', color: '#f59e0b', marginBottom: '8px' }}>
-                      {module.ratingStars}
-                    </div>
-                    {module.price > 0 && (
-                      <button
-                        onClick={() => handleSubscribeClick(module)}
-                        style={{
-                          width: '93px',
-                          height: '28px',
-                          backgroundColor: module.subscribed ? '#6c757d' : '#3674B5',
-                          color: '#FFFFFF',
-                          borderRadius: '6px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {module.subscribed ? '구독중' : '구독하기'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '12px 16px',
+                backgroundColor: 'white',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              {viewMode === 'grid' ? <FiList size={16} /> : <FiGrid size={16} />}
+            </button>
           </div>
         </div>
 
-        {/* 우측 섹션 - 카테고리 필터 및 인기 모듈 */}
-        <div style={{
-          flex: '4',
-          backgroundColor: '#f9fafb',
-          padding: '20px',
-          borderRadius: '8px',
-          border: '1px solid #f3f4f6'
+        {/* 통계 카드 */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+          gap: '16px'
         }}>
-          <h3 style={{ color: '#000000', marginBottom: '10px', fontSize: '18px', fontWeight: '600' }}>
-            카테고리
-          </h3>
-
-          {/* 필터 탭 */}
           <div style={{
-            display: 'flex',
-            gap: '8px',
-            marginBottom: '20px',
-            borderBottom: '1px solid #e5e7eb',
-            paddingBottom: '12px'
+            textAlign: 'center',
+            padding: '24px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '1px solid #e9ecef'
           }}>
-            {[
-              { key: 'all', label: '전체' },
-              { key: 'education', label: '교육' },
-              { key: 'meeting', label: '회의' },
-              { key: 'management', label: '관리' }
-            ].map(filter => (
-              <button
-                key={filter.key}
-                onClick={() => handleFilterClick(filter.key)}
-                style={{
-                  width: '50px',
-                  height: '28px',
-                  backgroundColor: activeFilter === filter.key ? '#eef2ff' : 'transparent',
-                  color: activeFilter === filter.key ? '#3674B5' : '#6b7280',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '0',
-                  fontSize: '12px',
-                  fontWeight: activeFilter === filter.key ? '600' : '400',
-                  cursor: 'pointer',
-                  textAlign: 'center'
-                }}
-              >
-                {filter.label}
-              </button>
-            ))}
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              backgroundColor: '#e3f2fd',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px'
+            }}>
+              <FiPackage style={{ width: '24px', height: '24px', color: '#007bff' }} />
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#333', marginBottom: '4px' }}>
+              {filteredModules.length}
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>사용 가능한 모듈</div>
           </div>
 
-          {/* 인기 모듈 그리드 */}
+          <div style={{
+            textAlign: 'center',
+            padding: '24px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '1px solid #e9ecef'
+          }}>
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              backgroundColor: '#e8f5e8',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px'
+            }}>
+              <FiDownload style={{ width: '24px', height: '24px', color: '#4caf50' }} />
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#333', marginBottom: '4px' }}>
+              {subscribedCount}
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>구독 중인 모듈</div>
+          </div>
+
+          <div style={{
+            textAlign: 'center',
+            padding: '24px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: '1px solid #e9ecef'
+          }}>
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              backgroundColor: '#fff3cd',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 12px'
+            }}>
+              <span style={{ fontSize: '18px', color: '#856404' }}>₩</span>
+            </div>
+            <div style={{ fontSize: '24px', fontWeight: '700', color: '#333', marginBottom: '4px' }}>
+              ₩{totalPrice.toLocaleString()}
+            </div>
+            <div style={{ fontSize: '14px', color: '#666' }}>총 구독 비용</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 필터 탭 */}
+      <div style={{
+        display: 'flex',
+        gap: '8px',
+        marginBottom: '24px',
+        flexWrap: 'wrap'
+      }}>
+        {[
+          { key: 'all', label: '전체', icon: <FiPackage size={16} /> },
+          { key: 'meeting', label: '회의', icon: <FiEye size={16} /> },
+          { key: 'education', label: '교육', icon: <FiZap size={16} /> },
+          { key: 'management', label: '관리', icon: <FiUsers size={16} /> }
+        ].map(filter => (
+          <button
+            key={filter.key}
+            onClick={() => setActiveFilter(filter.key)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 20px',
+              backgroundColor: activeFilter === filter.key ? '#007bff' : 'white',
+              color: activeFilter === filter.key ? 'white' : '#666',
+              border: '2px solid #e0e0e0',
+              borderColor: activeFilter === filter.key ? '#007bff' : '#e0e0e0',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: activeFilter === filter.key ? '600' : '400',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            {filter.icon}
+            {filter.label}
+            <span style={{
+              backgroundColor: activeFilter === filter.key ? 'rgba(255,255,255,0.3)' : '#f8f9fa',
+              color: activeFilter === filter.key ? 'white' : '#666',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontSize: '12px',
+              fontWeight: '600'
+            }}>
+              {filter.key === 'all' ? modules.length : modules.filter(m => m.category === filter.key).length}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* 모듈 리스트 */}
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+        overflow: 'hidden',
+        border: '1px solid #e9ecef'
+      }}>
+        {isLoading ? (
+          <div style={{ textAlign: 'center', padding: '60px', color: '#666' }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              border: '3px solid #f3f3f3',
+              borderTop: '3px solid #007bff',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 16px'
+            }}></div>
+            <span>로딩 중...</span>
+          </div>
+        ) : filteredModules.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px', color: '#666' }}>
+            <FiPackage style={{ width: '48px', height: '48px', color: '#ccc', margin: '0 auto 16px' }} />
+            <div style={{ fontSize: '18px', marginBottom: '8px' }}>검색 결과가 없습니다</div>
+            <div style={{ fontSize: '14px', color: '#999' }}>다른 키워드로 검색해보세요</div>
+          </div>
+        ) : viewMode === 'grid' ? (
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '16px'
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '20px',
+            padding: '24px'
           }}>
-            {popularModules.map((module, index) => (
-              <div key={module.moduleId || index} style={{
-                backgroundColor: '#fff',
+            {filteredModules.map((module) => (
+              <div key={module.moduleId} style={{
                 border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                padding: '16px',
+                borderRadius: '16px',
+                padding: '24px',
+                transition: 'all 0.3s ease',
+                backgroundColor: 'white',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '8px',
-                boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
+                minHeight: '320px',
+                maxHeight: '400px'
               }}>
-                {/* 헤더 */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {/* 모듈 헤더 */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', marginBottom: '20px' }}>
                   <div style={{
                     flexShrink: 0,
-                    width: '48px',
-                    height: '48px',
-                    borderRadius: '50%',
+                    width: '60px',
+                    height: '60px',
+                    borderRadius: '16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    ...iconStyles[module.icon]
+                    ...iconStyles[module.icon],
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
                   }}>
-                    {iconComponents[module.icon] || iconComponents['drowsy']}
+                    {iconComponents[module.icon] || iconComponents['chat']}
                   </div>
-                  <div style={{ color: '#000000', fontWeight: '600', fontSize: '14px' }}>
-                    {module.name || '모듈명 없음'}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ 
+                      fontWeight: '700', 
+                      fontSize: '18px', 
+                      color: '#1f2937', 
+                      marginBottom: '8px',
+                      lineHeight: '1.2',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {module.name}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        {generateStarRating(module.rating)}
+                        <span style={{ fontSize: '14px', color: '#666', marginLeft: '6px', fontWeight: '600' }}>
+                          {module.rating}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '12px', color: '#999' }}>•</span>
+                      <span style={{ fontSize: '14px', color: '#666', fontWeight: '500' }}>
+                        {module.downloads}회
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* 평점 */}
-                <div style={{ color: '#f59e0b', fontSize: '12px' }}>
-                  {module.ratingStars}
-                </div>
-
-                {/* 가격 */}
-                <div style={{ 
-                  fontSize: '16px', 
-                  fontWeight: '700', 
-                  color: '#111827', 
-                  marginTop: 'auto' 
+                {/* 모듈 설명 */}
+                <p style={{ 
+                  fontSize: '15px', 
+                  color: '#6b7280', 
+                  marginBottom: '20px', 
+                  lineHeight: '1.6',
+                  flex: 1,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 3,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  minHeight: '72px'
                 }}>
-                  {module.formattedPrice || '무료'}
+                  {module.description}
+                </p>
+
+                {/* 태그 */}
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '8px', 
+                  marginBottom: '20px', 
+                  flexWrap: 'wrap',
+                  minHeight: '32px',
+                  alignItems: 'flex-start'
+                }}>
+                  {module.tags.slice(0, 3).map((tag, index) => (
+                    <span key={index} style={{
+                      backgroundColor: '#f1f5f9',
+                      color: '#475569',
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      {tag}
+                    </span>
+                  ))}
                 </div>
 
-                {/* 구독 버튼 */}
-                {module.price > 0 && (
-                  <div style={{ paddingTop: '8px' }}>
-                    <button
-                      onClick={() => handleSubscribeClick(module)}
-                      style={{
-                        width: '100%',
-                        height: '29px',
-                        backgroundColor: module.subscribed ? '#6c757d' : '#3674B5',
-                        color: '#FFFFFF',
-                        borderRadius: '6px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      {module.subscribed ? '구독중' : '구독하기'}
-                    </button>
+                {/* 가격 및 액션 */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  marginTop: 'auto',
+                  paddingTop: '16px',
+                  borderTop: '1px solid #f1f5f9'
+                }}>
+                  <div style={{ 
+                    fontSize: '22px', 
+                    fontWeight: '800', 
+                    color: '#111827',
+                    letterSpacing: '-0.5px'
+                  }}>
+                    ₩{module.price.toLocaleString()}
                   </div>
-                )}
+                  <button
+                    onClick={() => handleSubscribeClick(module)}
+                    style={{
+                      padding: '12px 20px',
+                      backgroundColor: module.subscribed ? '#6c757d' : '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      whiteSpace: 'nowrap',
+                      boxShadow: '0 2px 8px rgba(0, 123, 255, 0.3)',
+                      transform: 'translateY(0)',
+                      minWidth: '120px',
+                      justifyContent: 'center'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.transform = 'translateY(-2px)';
+                      e.target.style.boxShadow = '0 4px 16px rgba(0, 123, 255, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.transform = 'translateY(0)';
+                      e.target.style.boxShadow = '0 2px 8px rgba(0, 123, 255, 0.3)';
+                    }}
+                  >
+                    {module.subscribed ? (
+                      <>
+                        <FiDownload size={16} />
+                        구독중
+                      </>
+                    ) : (
+                      <>
+                        <FiShoppingCart size={16} />
+                        구독하기
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
-        </div>
+        ) : (
+          <div style={{ padding: '24px' }}>
+            {filteredModules.map((module) => (
+              <div key={module.moduleId} style={{
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                padding: '20px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '20px',
+                backgroundColor: 'white'
+              }}>
+                {/* 모듈 아이콘 */}
+                <div style={{
+                  flexShrink: 0,
+                  width: '56px',
+                  height: '56px',
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  ...iconStyles[module.icon]
+                }}>
+                  {iconComponents[module.icon] || iconComponents['chat']}
+                </div>
+
+                {/* 모듈 정보 */}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '600', fontSize: '18px', color: '#1f2937', marginBottom: '4px' }}>
+                    {module.name}
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#6b7280', marginBottom: '8px' }}>
+                    {module.description}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      {generateStarRating(module.rating)}
+                      <span style={{ fontSize: '14px', color: '#666', marginLeft: '4px' }}>
+                        {module.rating}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '14px', color: '#666' }}>
+                      {module.downloads}회 다운로드
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      {module.tags.slice(0, 2).map((tag, index) => (
+                        <span key={index} style={{
+                          backgroundColor: '#f3f4f6',
+                          color: '#374151',
+                          padding: '2px 6px',
+                          borderRadius: '4px',
+                          fontSize: '12px'
+                        }}>
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 가격 및 액션 */}
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '20px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>
+                    ₩{module.price.toLocaleString()}
+                  </div>
+                  <button
+                    onClick={() => handleSubscribeClick(module)}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: module.subscribed ? '#6c757d' : '#007bff',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    {module.subscribed ? (
+                      <>
+                        <FiDownload size={16} />
+                        구독중
+                      </>
+                    ) : (
+                      <>
+                        <FiShoppingCart size={16} />
+                        구독하기
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 모달 */}
@@ -932,54 +724,60 @@ const ModuleMarketplace = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999
+          zIndex: 9999,
+          backdropFilter: 'blur(5px)'
         }}>
           <div style={{
             backgroundColor: 'white',
-            padding: '24px',
-            borderRadius: '8px',
-            boxShadow: '0 5px 15px rgba(0,0,0,0.3)',
-            minWidth: '320px',
-            maxWidth: '450px',
+            padding: '30px',
+            borderRadius: '12px',
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
+            minWidth: '400px',
+            maxWidth: '500px',
             textAlign: 'center'
           }}>
-            <div style={{
-              marginBottom: '24px',
-              fontSize: '16px',
-              lineHeight: '1.6',
-              color: '#333',
-              whiteSpace: 'pre-wrap'
-            }}>
+            <h3 style={{ fontSize: '24px', marginBottom: '15px', color: '#333' }}>
+              {modalType === 'confirm' ? '확인 필요' : '알림'}
+            </h3>
+            <p style={{ fontSize: '16px', color: '#666', marginBottom: '25px', lineHeight: '1.5' }}>
               {modalMessage}
-            </div>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            </p>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
               <button
-                onClick={handleModalConfirm}
+                onClick={() => {
+                  setShowModal(false);
+                  if (modalCallback) modalCallback(true);
+                }}
                 style={{
-                  background: '#007bff',
+                  padding: '10px 24px',
+                  backgroundColor: '#007bff',
                   color: 'white',
                   border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '5px',
-                  cursor: 'pointer',
+                  borderRadius: '6px',
                   fontSize: '14px',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  minWidth: '100px'
                 }}
               >
                 확인
               </button>
               {modalType === 'confirm' && (
                 <button
-                  onClick={handleModalCancel}
+                  onClick={() => {
+                    setShowModal(false);
+                    if (modalCallback) modalCallback(false);
+                  }}
                   style={{
-                    background: '#6c757d',
+                    padding: '10px 24px',
+                    backgroundColor: '#6c757d',
                     color: 'white',
                     border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '5px',
-                    cursor: 'pointer',
+                    borderRadius: '6px',
                     fontSize: '14px',
-                    fontWeight: '500'
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    minWidth: '100px'
                   }}
                 >
                   취소
@@ -989,6 +787,16 @@ const ModuleMarketplace = () => {
           </div>
         </div>
       )}
+
+      {/* CSS 애니메이션 */}
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 };

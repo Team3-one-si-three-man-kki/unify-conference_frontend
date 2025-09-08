@@ -13,6 +13,7 @@ export const useWhiteboard = (containerRef) => {
     const [color, setColor] = useState('#000000');
     const [width, setWidth] = useState(5);
     const [objects, setObjects] = useState([]);
+    const [selectedObjectIds, setSelectedObjectIds] = useState([]); // New state for selected object IDs
 
     const isDrawing = useRef(false);
     const currentShape = useRef(null);
@@ -84,12 +85,11 @@ export const useWhiteboard = (containerRef) => {
         const handleMouseDown = (e) => {
             if (modeRef.current === 'select') {
                 if (e.target === stage) {
-                    transformerRef.current.nodes([]);
+                    setSelectedObjectIds([]); // Deselect all
                     return;
                 }
-                if (e.target.hasName('shape')) {
-                    transformerRef.current.nodes([e.target]);
-                }
+                // Selection logic is now handled by the click event on individual Konva nodes in Effect 4
+                // This ensures the transformer gets the *new* node instance after redraws.
                 return;
             }
 
@@ -191,11 +191,11 @@ export const useWhiteboard = (containerRef) => {
                 break;
             case 'remove_objects':
                 setObjects(prev => prev.filter(obj => !canvasData.ids.includes(obj.id)));
-                transformerRef.current?.nodes([]);
+                setSelectedObjectIds(prev => prev.filter(id => !canvasData.ids.includes(id))); // Clear selected IDs
                 break;
             case 'clear':
                 setObjects([]);
-                transformerRef.current?.nodes([]);
+                setSelectedObjectIds([]); // Clear selected IDs
                 break;
         }
     }, [canvasData, roomClient]);
@@ -273,13 +273,30 @@ export const useWhiteboard = (containerRef) => {
                 setObjects(prev => prev.map(o => o.id === obj.id ? updatedObj : o));
                 signal({ type: 'update_object', object: updatedObj });
             });
+
+            // Add click handler for selection
+            konvaNode.on('click', (e) => {
+                if (modeRef.current === 'select' && isAdmin) {
+                    setSelectedObjectIds([e.target.id()]);
+                }
+            });
+
             layer.add(konvaNode);
         });
-    }, [objects, isAdmin, mode, signal]);
+
+        // Update transformer nodes after all objects are redrawn
+        const newSelectedNodes = selectedObjectIds
+            .map(id => layer.findOne(`#${id}`))
+            .filter(node => node); // Filter out null/undefined if a selected object was removed
+
+        transformer.nodes(newSelectedNodes);
+        transformer.getLayer()?.batchDraw(); // Redraw transformer to show/hide handles
+    }, [objects, isAdmin, mode, signal, selectedObjectIds]); // Add selectedObjectIds to dependencies
 
     const clearCanvas = useCallback(() => {
         setObjects([]);
         signal({ type: 'clear' });
+        setSelectedObjectIds([]); // Clear selected IDs
     }, [signal]);
 
     const removeSelected = useCallback(() => {
@@ -288,7 +305,7 @@ export const useWhiteboard = (containerRef) => {
             const idsToRemove = nodes.map(node => node.id());
             setObjects(prev => prev.filter(obj => !idsToRemove.includes(obj.id)));
             signal({ type: 'remove_objects', ids: idsToRemove });
-            transformerRef.current.nodes([]);
+            setSelectedObjectIds([]); // Clear selected IDs
         }
     }, [signal]);
 

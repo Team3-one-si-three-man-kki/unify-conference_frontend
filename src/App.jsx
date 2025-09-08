@@ -17,6 +17,7 @@ import LoginPage from "./pages/Login/LoginPage"
 import { SessionCreator } from "./pages/session/SessionCreator";
 import { SessionManager } from "./components/features/sessionManager/SessionManager";
 import ModuleManagement from "./pages/ModuleManagement/ModuleManagement";
+import { LoginCustomizer } from "./pages/LoginCustomizer";
 
 import AdminDevLogin from "./pages/Admin/Admin_dev_login";
 import TenantManagementSystem from "./pages/Admin/Admin_dev_tenant";
@@ -62,6 +63,7 @@ function App() {
           <Route path="modules" element={<ModuleMarketplace />} />
           <Route path="attendance" element={<AttendanceModule />} />
           <Route path="login-custom" element={<LoginPage />} />
+          <Route path="customize-login/:tenantId" element={<LoginCustomizer />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="meeting" element={<SessionCreator />} />
           <Route path="previous-meeting" element={<SessionManager />} />

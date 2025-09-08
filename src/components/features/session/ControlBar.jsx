@@ -17,7 +17,7 @@ const ControlBar = ({
   isAdmin, // isAdmin prop 추가
   isWhiteboardActive, // isWhiteboardActive prop 추가
 }) => {
-  const { roomClient, setIsWhiteboardActive } = useSessionStore();
+  const { roomClient, setIsWhiteboardActive, toggleModuleActive, sessionModules } = useSessionStore();
 
   const handleToggleWhiteboard = () => {
     if (!roomClient) {
@@ -76,6 +76,17 @@ const ControlBar = ({
           activeIcon: '📝',
           inactiveIcon: '📝',
           activeColor: '#3498db',
+        };
+      case 'FACEAI': // Face AI 모듈 추가
+        const faceAiModule = sessionModules.find(m => m.code === 'FACEAI');
+        return {
+          isActive: faceAiModule?.isActive || false,
+          handler: () => { console.log('ControlBar: FACEAI button clicked'); toggleModuleActive('FACEAI'); },
+          activeText: 'AI 끄기',
+          inactiveText: 'AI 켜기',
+          activeIcon: '🤖',
+          inactiveIcon: '🤖',
+          activeColor: '#9b59b6',
         };
       default:
         return {

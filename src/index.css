@@ -39,6 +39,7 @@ body {
 
 #root {
   width: 100%;
+  height: 100%;
   min-height: 100vh;
   display: block; /* flex 대신 block 사용 */
 }
@@ -84,4 +85,3 @@ button:focus-visible {
   outline: 2px solid #3674B5;
   outline-offset: 2px;
 }
-

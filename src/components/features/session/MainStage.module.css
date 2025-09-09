@@ -56,8 +56,18 @@
 .screenShareLayer { z-index: 2; }
 .whiteboardLayer {
     z-index: 3;
-    background-color: #FFFFFF; /* Whiteboard background */
+    /* background-color: #FFFFFF; Removed to allow transparency to be controlled by JS */
     pointer-events: auto; /* Whiteboard itself should be interactive */
+}
+
+.whiteboardOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 3; /* Ensure whiteboard is above screen share */
+    pointer-events: auto; /* Allow interaction with whiteboard */
 }
 
 /* Picture-in-picture video for local participant when whiteboard is active */

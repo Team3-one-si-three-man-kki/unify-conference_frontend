@@ -79,7 +79,8 @@ export const SessionRoom = () => {
             removeParticipant(peerId);
         });
 
-        client.on('producer-closed', ({ isRemoteScreenShare }) => {
+        client.on('producer-closed', ({ producerId, kind, isRemoteScreenShare }) => {
+            console.log(`Producer closed: producerId=${producerId}, kind=${kind}, isRemoteScreenShare=${isRemoteScreenShare}`);
             if (isRemoteScreenShare) {
                 setRemoteScreenShare(null, null);
             }
@@ -154,6 +155,9 @@ export const SessionRoom = () => {
         setPinnedId(prev => (prev === id ? null : id));
     }, []);
 
+    // Define isScreenShareActive directly in the component scope
+    const isScreenShareActive = isScreenSharing || !!screenSharingParticipantId;
+
     const { mainParticipant, sidebarParticipants } = useMemo(() => {
         const localParticipant = participants.find(p => p.isLocal);
         const remoteParticipants = participants.filter(p => !p.isLocal);
@@ -168,8 +172,6 @@ export const SessionRoom = () => {
 
         let main = localParticipant;
         let sidebar = remoteParticipants;
-
-        const isScreenShareActive = isScreenSharing || !!screenSharingParticipantId;
 
         if (isScreenShareActive) {
             main = screenSharingParticipant; // The screen share itself is the main content
@@ -192,7 +194,7 @@ export const SessionRoom = () => {
         }
 
         return { mainParticipant: main, sidebarParticipants: sidebar };
-    }, [participants, pinnedId, isScreenSharing, screenSharingParticipantId, remoteScreenShareTrack, isWhiteboardActive]);
+    }, [participants, pinnedId, isScreenSharing, screenSharingParticipantId, remoteScreenShareTrack, isWhiteboardActive, isScreenShareActive]); // Add isScreenShareActive to dependencies
     const handleToggleChat = () => setIsChatOpen(prev => !prev);
     const handleLeaveRoom = () => {
         localRoomClient?.close();
@@ -219,6 +221,7 @@ export const SessionRoom = () => {
                         isCameraOff={isCameraOff}
                         localStreamError={localStreamError}
                         isWhiteboardActive={isWhiteboardActive} // Pass isWhiteboardActive to MainStage
+                        isScreenShareActive={isScreenShareActive} // Pass isScreenShareActive to MainStage
                     />
                 </div>
                 <Sidebar>

@@ -12,7 +12,7 @@ const AiCanvas = ({ videoRef, canvasRef, aiEnabled }) => {
     return <canvas ref={canvasRef} className={styles.aiCanvas} />;
 };
 
-const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStreamError, isWhiteboardActive }) => {
+const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStreamError, isWhiteboardActive, isScreenShareActive }) => {
   const mainVideoRef = useRef(null); // For main participant video
   const pipVideoRef = useRef(null); // For picture-in-picture local video when whiteboard is active
   const screenShareVideoRef = useRef(null);
@@ -37,7 +37,6 @@ const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStre
 
 
   const faceAiModule = sessionModules.find(m => m.code === 'FACEAI');
-  const isScreenShareActive = !!screenShareTrack || !!remoteScreenShareTrack;
   
   const aiEnabled =
     !!faceAiModule &&
@@ -78,10 +77,23 @@ const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStre
   }, [screenShareTrack, remoteScreenShareTrack]);
 
   const renderContent = () => {
+    if (isScreenShareActive) {
+      return (
+        <div className={`${styles.mainStageLayer} ${styles.screenShareLayer}`}>
+          <video ref={screenShareVideoRef} autoPlay playsInline className={styles.mainVideoElement} />
+          {isWhiteboardActive && (
+            <div className={styles.whiteboardOverlay}>
+              <Whiteboard isVisible={isWhiteboardActive} isScreenShareActive={isScreenShareActive} />
+            </div>
+          )}
+        </div>
+      );
+    }
+
     if (isWhiteboardActive) {
       return (
         <div className={`${styles.mainStageLayer} ${styles.whiteboardLayer}`}>
-          <Whiteboard isVisible={isWhiteboardActive} />
+          <Whiteboard isVisible={isWhiteboardActive} isScreenShareActive={isScreenShareActive} />
           {/* Local participant's camera as a small picture-in-picture when whiteboard is active */}
           {mainParticipant?.isLocal && !isCameraOff && !localStreamError && (
             <div className={styles.pipVideoWrapper}>
@@ -96,14 +108,6 @@ const MainStage = ({ participants, pinnedId, isCameraOff, localStream, localStre
               {!!faceAiModule && <AiCanvas videoRef={pipVideoRef} canvasRef={aiCanvasRef} aiEnabled={aiEnabled} />}
             </div>
           )}
-        </div>
-      );
-    }
-
-    if (isScreenShareActive) {
-      return (
-        <div className={`${styles.mainStageLayer} ${styles.screenShareLayer}`}>
-          <video ref={screenShareVideoRef} autoPlay playsInline className={styles.mainVideoElement} />
         </div>
       );
     }

@@ -452,6 +452,11 @@ export class RoomClient {
     const isLocalVideoProducer = producer && producer.kind === 'video' && (producer.appData && !producer.appData.source);
 
     this.emit("producer-closed", { producerId, isScreenShareProducer, isLocalVideoProducer, peerId, isRemoteScreenShare });
+
+    // 닫힌 프로듀서를 pendingConsumeList에서도 제거
+    this.pendingConsumeList = this.pendingConsumeList.filter(
+      (item) => item.producerId !== producerId
+    );
   }
   async _sendRequest(action, data) {
     return new Promise((resolve, reject) => {

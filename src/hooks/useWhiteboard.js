@@ -3,7 +3,7 @@ import Konva from 'konva';
 import { v4 as uuidv4 } from 'uuid';
 import { useSessionStore } from '../store/session/sessionStore';
 
-export const useWhiteboard = (containerRef) => {
+export const useWhiteboard = (containerRef, isScreenShareActive) => {
     const { roomClient, canvasData, isAdmin } = useSessionStore();
     const stageRef = useRef(null);
     const layerRef = useRef(null);
@@ -14,6 +14,11 @@ export const useWhiteboard = (containerRef) => {
     const [width, setWidth] = useState(5);
     const [objects, setObjects] = useState([]);
     const [selectedObjectIds, setSelectedObjectIds] = useState([]); // New state for selected object IDs
+
+    // Whiteboard background transparency state
+    // 화면 공유 활성화 시 초기 배경 모드를 투명으로 설정
+    const [userSelectedBackgroundMode, setUserSelectedBackgroundMode] = useState(isScreenShareActive ? 'transparent' : 'white'); // User's explicit choice
+    const [whiteboardBackgroundMode, setWhiteboardBackgroundModeState] = useState('white'); // Actual mode applied
 
     const isDrawing = useRef(false);
     const currentShape = useRef(null);
@@ -32,6 +37,37 @@ export const useWhiteboard = (containerRef) => {
         }
     }, [roomClient, isAdmin]);
 
+    // Effect for whiteboard background mode and direct style application
+    useEffect(() => {
+        let newBackgroundMode;
+
+        if (isScreenShareActive) {
+            // If screen sharing is active, default to transparent,
+            // but allow user to explicitly choose 'white'.
+            newBackgroundMode = userSelectedBackgroundMode === 'white' ? 'white' : 'transparent';
+        } else {
+            // If screen sharing is not active, use the user's selected mode.
+            newBackgroundMode = userSelectedBackgroundMode;
+        }
+
+        setWhiteboardBackgroundModeState(newBackgroundMode);
+
+        if (containerRef.current) {
+            if (newBackgroundMode === 'transparent') {
+                containerRef.current.style.backgroundColor = 'transparent';
+                console.log('Whiteboard container background set to transparent');
+            } else {
+                containerRef.current.style.backgroundColor = '#ffffff'; // White
+                console.log('Whiteboard container background set to white');
+            }
+            // Also try setting background on the Konva stage's actual container
+            if (stageRef.current) {
+                stageRef.current.container().style.backgroundColor = containerRef.current.style.backgroundColor;
+                console.log('Konva stage container background set to', containerRef.current.style.backgroundColor);
+            }
+        }
+    }, [isScreenShareActive, userSelectedBackgroundMode, containerRef.current, stageRef.current]);
+
     // Effect 1: Konva Stage를 생성하고 파괴하는 역할만 담당합니다.
     useEffect(() => {
         // containerRef.current가 유효할 때만 Stage를 생성합니다.
@@ -42,12 +78,23 @@ export const useWhiteboard = (containerRef) => {
                 container: container,
                 width: container.offsetWidth,
                 height: container.offsetHeight,
+                // Explicitly set the stage background to transparent
+                // This might be necessary if Konva itself defaults to opaque
+                // or if there's a rendering context issue.
+                // Konva stages are usually transparent by default, but this ensures it.
+                background: 'transparent',
             });
             stageRef.current = stage;
 
             const layer = new Konva.Layer();
             stage.add(layer);
             layerRef.current = layer;
+
+            // Ensure the Konva canvas element itself is transparent
+            const konvaCanvas = container.querySelector('canvas');
+            if (konvaCanvas) {
+                konvaCanvas.style.backgroundColor = 'transparent';
+            }
 
             const transformer = new Konva.Transformer({
                 nodes: [],
@@ -309,5 +356,8 @@ export const useWhiteboard = (containerRef) => {
         }
     }, [signal]);
 
-    return { mode, setMode, color, setColor, width, setWidth, clearCanvas, removeSelected };
+    return {
+        mode, setMode, color, setColor, width, setWidth, clearCanvas, removeSelected,
+        whiteboardBackgroundMode, setWhiteboardBackgroundMode: setUserSelectedBackgroundMode
+    };
 };

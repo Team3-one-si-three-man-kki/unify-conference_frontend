@@ -46,7 +46,8 @@ export const SessionRoom = () => {
         // 1. 서버로부터 내 고유 ID를 받으면, '나'의 정보를 '생성'합니다.
         client.on('adminStatus', ({ peerId, isAdmin }) => {
             setIsAdmin(isAdmin);
-            updateParticipant({ id: peerId, isLocal: true, userName: '나' });
+            const { userName } = location.state || {}; // Get userName from location.state
+            updateParticipant({ id: peerId, isLocal: true, userName: userName || '나' }); // Use provided userName or default to '나'
         });
 
         // 2. 내 로컬 미디어 스트림이 준비되면, '생성된 내 정보'에 스트림을 '추가(업데이트)'합니다.
@@ -173,9 +174,6 @@ export const SessionRoom = () => {
         if (isScreenShareActive) {
             main = screenSharingParticipant; // The screen share itself is the main content
             sidebar = participants; // All camera feeds (including the screen sharer's camera) go to the sidebar
-        } else if (isWhiteboardActive) {
-            main = null; // Whiteboard is the main content
-            sidebar = participants; // All camera feeds go to the sidebar
         } else if (pinnedId) {
             main = participants.find(p => p.id === pinnedId);
             sidebar = participants.filter(p => p.id !== pinnedId);
@@ -183,6 +181,14 @@ export const SessionRoom = () => {
             // Default state: local participant is main, remote participants are sidebar
             main = localParticipant;
             sidebar = remoteParticipants;
+        }
+
+        // If whiteboard is active, and no screen share or pinned participant,
+        // the local participant should still be the main content.
+        // The MainStage component will handle rendering the whiteboard over/alongside it.
+        if (isWhiteboardActive && !isScreenShareActive && !pinnedId) {
+            main = localParticipant;
+            sidebar = participants; // All camera feeds go to the sidebar
         }
 
         return { mainParticipant: main, sidebarParticipants: sidebar };
@@ -206,15 +212,13 @@ export const SessionRoom = () => {
         <div className={styles.sessionRoomContainer}>
             <div className={styles.mainContentArea}>
                 <div className={styles.mainVideoArea}>
-                    {/* 🔽 Whiteboard 컴포넌트를 MainStage 밖으로 이동시켰습니다. */}
-                    {isWhiteboardActive && <Whiteboard isVisible={isWhiteboardActive} />}
                     <MainStage
                         participants={participants}
                         pinnedId={pinnedId}
                         localStream={localStream}
-                        isVisible={!isWhiteboardActive}
                         isCameraOff={isCameraOff}
                         localStreamError={localStreamError}
+                        isWhiteboardActive={isWhiteboardActive} // Pass isWhiteboardActive to MainStage
                     />
                 </div>
                 <Sidebar>

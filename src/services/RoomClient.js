@@ -93,6 +93,7 @@ export class RoomClient {
       micMuted: options.initialMicMuted,
       cameraOff: options.initialCameraOff
     };
+    this.myUserName = userName; // Store userName for later use
 
     if (!roomId) {
       throw new Error("roomId is required to join a room");
@@ -277,14 +278,14 @@ export class RoomClient {
       if (videoTrack) {
         const videoProducer = await this.sendTransport.produce({
           track: videoTrack,
-          appData: { source: 'webcam', peerId: this.myPeerId }
+          appData: { source: 'webcam', peerId: this.myPeerId, userName: this.myUserName }
         });
         this.producers.set(videoProducer.id, videoProducer);
       }
       if (audioTrack) {
         const audioProducer = await this.sendTransport.produce({
           track: audioTrack,
-          appData: { source: 'mic', peerId: this.myPeerId }
+          appData: { source: 'mic', peerId: this.myPeerId, userName: this.myUserName }
         });
         this.producers.set(audioProducer.id, audioProducer);
       }

@@ -8,22 +8,28 @@ const WaitingRoom = () => {
   const localStreamRef = useRef(null);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [roomId, setRoomId] = useState('1004');
 
-  useEffect(() => {
-    const getMedia = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        localStreamRef.current = stream;
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
-      } catch (err) {
-        console.error('Error accessing media devices.', err);
+  const getMedia = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      localStreamRef.current = stream;
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+        localVideoRef.current.oncanplay = () => {
+          setIsVideoPlaying(true);
+        };
       }
-    };
+    } catch (err) {
+      console.error('Error accessing media devices.', err);
+      setIsVideoPlaying(false);
+    }
+  };
+
+  useEffect(() => {
     getMedia();
 
     return () => {
@@ -32,6 +38,8 @@ const WaitingRoom = () => {
       }
     };
   }, []);
+
+  const showVideo = !isCameraOff && isVideoPlaying;
 
   const handleJoin = () => {
     if (userName && userEmail && roomId) {
@@ -55,14 +63,21 @@ const WaitingRoom = () => {
       </header>
       <div className={styles.mainContentArea}>
         <div className={`${styles.previewArea} ${styles.fadeInUp}`}>
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-          muted
-          className={styles.localVideo}
-        />
-        <div className={styles.controls}>
+          <div className={styles.localVideoWrapper}>
+            <video
+              ref={localVideoRef}
+              autoPlay
+              playsInline
+              muted
+              className={`${styles.localVideo} ${showVideo ? styles.visible : ''}`}
+              onPlaying={() => setIsVideoPlaying(true)}
+            />
+            <div className={`${styles.cameraStatusOverlay} ${showVideo ? styles.hidden : ''}`}>
+              <img src="/src/assets/icons/camera_off.svg" alt="Camera Off" className={styles.cameraOffIcon} />
+              <p>{isCameraOff ? '카메라가 꺼져 있습니다' : '카메라 준비 중...'}</p>
+            </div>
+          </div>
+          <div className={styles.controls}>
           <button 
             onClick={() => {
               const stream = localStreamRef.current;
@@ -76,11 +91,21 @@ const WaitingRoom = () => {
             {isMicMuted ? '음소거 해제' : '음소거'}
           </button>
           <button 
-            onClick={() => {
-              const stream = localStreamRef.current;
-              if (stream) {
-                stream.getVideoTracks().forEach(track => track.enabled = !track.enabled);
-                setIsCameraOff(prev => !prev);
+            onClick={async () => {
+              const newIsCameraOff = !isCameraOff;
+              setIsCameraOff(newIsCameraOff);
+
+              if (newIsCameraOff) { // If turning camera OFF
+                if (localStreamRef.current) {
+                  localStreamRef.current.getTracks().forEach(track => track.stop());
+                  localStreamRef.current = null;
+                }
+                if (localVideoRef.current) {
+                  localVideoRef.current.srcObject = null;
+                }
+                setIsVideoPlaying(false);
+              } else { // If turning camera ON
+                await getMedia(); // Re-acquire media stream
               }
             }} 
             className={`${styles.controlButton} ${isCameraOff ? styles.videoOff : styles.videoOn}`}

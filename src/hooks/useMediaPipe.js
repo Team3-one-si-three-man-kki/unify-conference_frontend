@@ -34,71 +34,71 @@ export const useMediaPipe = (videoRef, canvasRef, enabled = true) => {
     const drowsinessTimeoutRef = useRef(null);
     const absenceTimeoutRef = useRef(null);
 
-    // Effect 1: MediaPipe 모듈과 FilesetResolver를 로드하고 준비 상태를 알립니다.
+    // Effect 1: 'enabled' 상태에 따라 MediaPipe 모듈과 FaceLandmarker 인스턴스를 관리합니다.
     useEffect(() => {
-        const initialize = async () => {
-            try {
-                // 전역 Promise를 호출하여, 이미 로드된 경우 즉시 반환받습니다.
-                await loadVisionModule();
-                await createFilesetResolver();
-
-                // 이 컴포넌트 인스턴스에서 MediaPipe를 사용할 준비가 되었음을 알립니다.
-                if (!isMediaPipeReady) {
-                    setIsMediaPipeReady(true);
-                }
-            } catch (error) {
-                console.error("Failed to load MediaPipe dependencies:", error);
-            }
-        };
-        initialize();
-    }, []); // 의존성 배열이 비어있어 마운트 시 한 번만 실행됩니다.
-
-    // Effect 2: 'enabled'와 'isMediaPipeReady' 상태에 따라 FaceLandmarker 인스턴스를 관리합니다.
-    useEffect(() => {
-        if (!enabled || !isMediaPipeReady) {
+        let isCancelled = false;
+        if (!enabled) {
             if (faceLandmarker) {
                 faceLandmarker.close();
                 setFaceLandmarker(null);
                 console.log("useMediaPipe: FaceLandmarker instance closed.");
             }
+            setIsMediaPipeReady(false); // Reset ready state when disabled
             return;
         }
 
-        let isCancelled = false;
-        const initializeFaceLandmarker = async () => {
-            if (faceLandmarker) return;
-
+        const initializeMediaPipe = async () => {
             try {
-                const vision = await visionPromise; // 이미 로드된 Promise를 사용
-                const filesetResolver = await filesetResolverPromise; // 이미 생성된 Promise를 사용
+                // 전역 Promise를 호출하여, 이미 로드된 경우 즉시 반환받습니다.
+                const vision = await loadVisionModule();
+                const filesetResolver = await createFilesetResolver();
 
-                const newLandmarker = await vision.FaceLandmarker.createFromOptions(filesetResolver, {
-                    baseOptions: {
-                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
-                        delegate: "GPU"
-                    },
-                    outputFaceBlendshapes: true, runningMode: "VIDEO", numFaces: 1
-                });
+                if (isCancelled) return;
+
+                // FaceLandmarker 인스턴스가 없으면 새로 생성합니다.
+                if (!faceLandmarker) {
+                    const newLandmarker = await vision.FaceLandmarker.createFromOptions(filesetResolver, {
+                        baseOptions: {
+                            modelAssetPath: `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+                            delegate: "GPU"
+                        },
+                        outputFaceBlendshapes: true, runningMode: "VIDEO", numFaces: 1
+                    });
+
+                    if (!isCancelled) {
+                        setFaceLandmarker(newLandmarker);
+                        console.log("useMediaPipe: FaceLandmarker instance created.");
+                    } else {
+                        newLandmarker.close();
+                    }
+                }
 
                 if (!isCancelled) {
-                    setFaceLandmarker(newLandmarker);
-                    console.log("useMediaPipe: FaceLandmarker instance created.");
-                } else {
-                    newLandmarker.close();
+                    setIsMediaPipeReady(true);
                 }
             } catch (error) {
-                console.error("Failed to initialize FaceLandmarker:", error);
+                console.error("Failed to load MediaPipe dependencies or initialize FaceLandmarker:", error);
+                if (!isCancelled) {
+                    setIsMediaPipeReady(false);
+                }
             }
         };
 
-        initializeFaceLandmarker();
+        initializeMediaPipe();
 
         return () => {
             isCancelled = true;
+            // Cleanup FaceLandmarker if it was created in this effect and enabled becomes false
+            if (faceLandmarker) {
+                faceLandmarker.close();
+                setFaceLandmarker(null);
+                console.log("useMediaPipe: FaceLandmarker instance closed during cleanup.");
+            }
+            setIsMediaPipeReady(false);
         };
-    }, [enabled, isMediaPipeReady]);
+    }, [enabled, faceLandmarker]); // 'enabled'와 'faceLandmarker' 상태에 따라 실행됩니다.
 
-    // Effect 3: 실제 얼굴 감지 및 렌더링 로직 (변경 없음)
+    // Effect 2: 실제 얼굴 감지 및 렌더링 로직
     useEffect(() => {
         const video = videoRef.current;
         const canvas = canvasRef.current;

@@ -3,7 +3,7 @@ import axios from 'axios';
 // 1. Axios 인스턴스 생성
 const apiClient = axios.create({
     // baseURL: 'http://localhost:9093', // 로컬 테스트용
-    baseURL: 'http://52.79.50.80:9093', // 백엔드 API 기본 주소
+    baseURL: 'https://api.unify-conference.store', // 백엔드 API 기본 주소
     withCredentials: true, // Refresh Token 쿠키를 주고받기 위해 필수!
 });
 
@@ -43,7 +43,9 @@ apiClient.interceptors.response.use(
             try {
                 // 토큰 재발급 API 호출 (이 요청은 인터셉터에 걸리지 않도록 새 인스턴스 사용 가능)
                 // const refreshResponse = await axios.post('http://localhost:9093/api/guest/reissue-token', {}, { // 로컬 테스트용
-                const refreshResponse = await axios.post('http://52.79.50.80:9093/api/guest/reissue-token', {}, {
+                //     withCredentials: true // Refresh Token 쿠키 전송
+                // });
+                const refreshResponse = await axios.post('https://api.unify-conference.store/api/guest/reissue-token', {}, {
                     withCredentials: true // Refresh Token 쿠키 전송
                 });
 

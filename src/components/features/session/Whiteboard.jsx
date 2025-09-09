@@ -4,9 +4,9 @@ import styles from './Whiteboard.module.css';
 import { useWhiteboard } from '../../../hooks/useWhiteboard';
 import { useSessionStore } from '../../../store/session/sessionStore';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faMousePointer, faPencilAlt, faEraser, faSquare, faCircle, faLongArrowAltRight, faFont, faTrash, faBan } from '@fortawesome/free-solid-svg-icons';
+import { faMousePointer, faPencilAlt, faEraser, faSquare, faCircle, faLongArrowAltRight, faFont, faTrash, faBan, faPalette } from '@fortawesome/free-solid-svg-icons';
 
-const Whiteboard = ({ isVisible }) => {
+const Whiteboard = ({ isVisible, isScreenShareActive }) => {
     const containerDivRef = useRef(null); // Stage의 부모 div를 위한 ref
 
     const { isAdmin } = useSessionStore();
@@ -14,7 +14,8 @@ const Whiteboard = ({ isVisible }) => {
     // useWhiteboard 훅에서 필요한 모든 상태와 함수를 받아옵니다.
     const {
         mode, setMode, color, setColor, width, setWidth, clearCanvas, removeSelected,
-    } = useWhiteboard(containerDivRef); // Pass containerDivRef here
+        whiteboardBackgroundMode, setWhiteboardBackgroundMode
+    } = useWhiteboard(containerDivRef, isScreenShareActive); // Pass containerDivRef and isScreenShareActive here
 
     if (!isVisible) return null;
 
@@ -64,9 +65,29 @@ const Whiteboard = ({ isVisible }) => {
                     <button onClick={clearCanvas} className={styles.toolButton} title="모두 지우기">
                         <FontAwesomeIcon icon={faBan} />
                     </button>
+                    {/* 배경 모드 선택 UI */}
+                    <div className={styles.backgroundModeGroup}>
+                        <button
+                            onClick={() => setWhiteboardBackgroundMode('white')}
+                            className={`${styles.toolButton} ${whiteboardBackgroundMode === 'white' ? styles.active : ''}`}
+                            title="흰색 배경"
+                        >
+                            <FontAwesomeIcon icon={faPalette} /> 흰색
+                        </button>
+                        <button
+                            onClick={() => setWhiteboardBackgroundMode('transparent')}
+                            className={`${styles.toolButton} ${whiteboardBackgroundMode === 'transparent' ? styles.active : ''}`}
+                            title="투명 배경"
+                        >
+                            <FontAwesomeIcon icon={faPalette} /> 투명
+                        </button>
+                    </div>
                 </div>
             )}
-            <div ref={containerDivRef} className={styles.konvaContainer}>
+            <div
+                ref={containerDivRef}
+                className={styles.konvaContainer}
+            >
             </div>
         </div>
     );

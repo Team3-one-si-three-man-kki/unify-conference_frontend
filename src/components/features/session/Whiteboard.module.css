@@ -9,7 +9,7 @@
   z-index: 100; 
   display: flex;
   flex-direction: column;
-  background-color: #ffffff;
+  /* background-color: #ffffff; Removed to allow transparency to work */
   pointer-events: auto;
 }
 
@@ -67,4 +67,10 @@
   margin: 0;
   padding: 0;
   position: relative; /* Konva Stage의 absolute 포지셔닝을 위한 컨텍스트 제공 */
+}
+
+.backgroundModeGroup {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
 }

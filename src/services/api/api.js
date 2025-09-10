@@ -72,4 +72,17 @@ apiClient.interceptors.response.use(
     }
 );
 
+export const verifyRecaptcha = async (token) => {
+    try {
+        const response = await apiClient.post('/api/guest/verify-recaptcha', {
+            recaptchaToken: token,
+        });
+        return response.data;
+    } catch (error) {
+        console.error('Error verifying reCAPTCHA', error);
+        // 실패 시 에러 객체 또는 특정 값을 반환하여 UI에서 처리할 수 있도록 함
+        return error.response ? error.response.data : { success: false, message: 'Network error' };
+    }
+};
+
 export default apiClient;

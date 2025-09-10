@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReCAPTCHA from 'react-google-recaptcha';
 import styles from './WaitingRoom.module.css';
+
+import { verifyRecaptcha } from '../../services/api/api';
 
 const WaitingRoom = () => {
   const navigate = useNavigate();
@@ -12,6 +15,12 @@ const WaitingRoom = () => {
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [roomId, setRoomId] = useState('1004');
+  const [recaptchaToken, setRecaptchaToken] = useState(null);
+  const [isVerifying, setIsVerifying] = useState(false); // 로딩 상태 추가
+
+  const onRecaptchaChange = (token) => {
+    setRecaptchaToken(token);
+  };
 
   const getMedia = async () => {
     try {
@@ -41,18 +50,31 @@ const WaitingRoom = () => {
 
   const showVideo = !isCameraOff && isVideoPlaying;
 
-  const handleJoin = () => {
-    if (userName && userEmail && roomId) {
-      navigate(`/session/${roomId}`, { 
-          state: {
-              userName: userName,
-              userEmail: userEmail,
-              isMicMuted: isMicMuted,
-              isCameraOff: isCameraOff
-          }
+  const handleJoin = async () => {
+    if (!userName || !userEmail || !roomId) {
+      alert('모든 필드를 입력해주세요.');
+      return;
+    }
+    if (!recaptchaToken) {
+      alert('reCAPTCHA를 완료해주세요.');
+      return;
+    }
+
+    setIsVerifying(true);
+    const verificationResult = await verifyRecaptcha(recaptchaToken);
+    setIsVerifying(false);
+
+    if (verificationResult && verificationResult.success) {
+      navigate(`/session/${roomId}`, {
+        state: {
+          userName: userName,
+          userEmail: userEmail,
+          isMicMuted: isMicMuted,
+          isCameraOff: isCameraOff
+        }
       });
     } else {
-      alert('모든 필드를 입력해주세요.');
+      alert(`reCAPTCHA 검증에 실패했습니다: ${verificationResult.message || '다시 시도해주세요.'}`);
     }
   };
 
@@ -114,34 +136,42 @@ const WaitingRoom = () => {
           </button>
         </div>
       </div>
-        <div className={`${styles.inputArea} ${styles.fadeInUp}`}>
-          <h2>회의 입장</h2>
-          <p>참여 정보를 입력하고 회의실에 입장하세요.</p>
-          <label className={styles.inputLabel}>이름</label>
-          <input
-          type="text"
-          placeholder="이름"
-          value={userName}
-          onChange={(e) => setUserName(e.target.value)}
-          className={styles.inputField}
-        />
-        <label className={styles.inputLabel}>이메일</label>
-        <input
-          type="email"
-          placeholder="your.email@example.com"
-          value={userEmail}
-          onChange={(e) => setUserEmail(e.target.value)}
-          className={styles.inputField}
-        />
-        <label className={styles.inputLabel}>회의 ID</label>
-        <input
-          type="text"
-          placeholder="Enter Room ID"
-          value={roomId}
-          onChange={(e) => setRoomId(e.target.value)}
-          className={styles.inputField}
-        />
-        <button onClick={handleJoin} className={styles.joinButton}>입장하기</button>
+        <div className={styles.formWrapper}>
+          <div className={`${styles.inputArea} ${styles.fadeInUp}`}>
+            <h2>회의 입장</h2>
+            <p>참여 정보를 입력하고 회의실에 입장하세요.</p>
+            <label className={styles.inputLabel}>이름</label>
+            <input
+              type="text"
+              placeholder="이름"
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+              className={styles.inputField}
+            />
+            <label className={styles.inputLabel}>이메일</label>
+            <input
+              type="email"
+              placeholder="your.email@example.com"
+              value={userEmail}
+              onChange={(e) => setUserEmail(e.target.value)}
+              className={styles.inputField}
+            />
+            <label className={styles.inputLabel}>회의 ID</label>
+            <input
+              type="text"
+              placeholder="Enter Room ID"
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              className={styles.inputField}
+            />
+            <div className={styles.recaptchaWrapper}>
+              <ReCAPTCHA
+                sitekey="6LfRl8MrAAAAAEGYGbVQLAe3r-4U2VpuxC2N-Pme" // TODO: Replace with your actual site key
+                onChange={onRecaptchaChange}
+              />
+            </div>
+          </div>
+          <button onClick={handleJoin} className={styles.joinButton} disabled={!recaptchaToken}>입장하기</button>
         </div>
       </div>
     </div>
